@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProducerVault</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #7c3aed;
+    --accent2: #a855f7;
+    --green: #22c55e;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; min-height: 100vh; }
+
+  header {
+    padding: 28px 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent2); }
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 999px; font-size: 13px; color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; padding: 32px 40px;
+  }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+  }
+  .stat-num { font-size: 42px; font-weight: 700; color: var(--accent2); }
+  .stat-label { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .section { padding: 0 40px 40px; }
+  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 16px; }
+
+  .watch-path {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px;
+    font-size: 13px; color: var(--accent2); margin-bottom: 32px;
+  }
+  .watch-path span { color: var(--muted); }
+
+  .backup-list { display: flex; flex-direction: column; gap: 8px; }
+  .backup-row {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: border-color 0.2s;
+  }
+  .backup-row:hover { border-color: var(--accent); }
+  .backup-name { font-size: 14px; font-weight: 600; }
+  .backup-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .badge {
+    padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+  }
+  .badge-ok { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .badge-error { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+  .empty { color: var(--muted); font-size: 14px; padding: 32px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Producer<span>Vault</span></div>
+  <div class="status-pill">
+    <div class="dot"></div>
+    Watching
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">{{ total }}</div>
+    <div class="stat-label">Successful Backups</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">{{ errors }}</div>
+    <div class="stat-label">Errors</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">{{ backups|length }}</div>
+    <div class="stat-label">Recent Events</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Watching</div>
+  <div class="watch-path"><span>folder → </span>{{ watch_folder }}</div>
+
+  <div class="section-title">Recent Backups</div>
+  <div class="backup-list">
+    {% if backups %}
+      {% for b in backups %}
+      <div class="backup-row">
+        <div>
+          <div class="backup-name">{{ b.filename }}</div>
+          <div class="backup-meta">{{ b.backed_up_at[:19].replace('T',' ') }} UTC &nbsp;·&nbsp; {{ (b.size_bytes / 1024)|round(1) }} KB</div>
+        </div>
+        <span class="badge badge-{{ b.status }}">{{ '✓ backed up' if b.status == 'ok' else '✗ error' }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">No backups yet — save an Ableton project to trigger the first one.</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  // Auto-refresh every 10s
+  setInterval(() => {
+    fetch('/api/backups')
+      .then(r => r.json())
+      .then(() => location.reload());
+  }, 10000);
+</script>
+
+</body>
+</html>
