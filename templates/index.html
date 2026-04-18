@@ -3,19 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ProducerVault</title>
+<title>DAW Doctor</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* Ableton-exact palette */
     --bg:       #1a1a1a;
     --surface:  #222222;
     --panel:    #2a2a2a;
     --raised:   #323232;
-    --border:   #3a3a3a;
-    --border2:  #444444;
-    --text:     #d0d0d0;
-    --dim:      #7a7a7a;
+    --border:   #383838;
+    --border2:  #464646;
+    --text:     #cccccc;
+    --dim:      #888888;
     --muted:    #555555;
     --orange:   #e8760a;
     --orange2:  #f09030;
@@ -23,511 +22,560 @@
     --red:      #c43535;
     --blue:     #4a9eff;
     --white:    #eeeeee;
+    --sidebar-w: 240px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: 'Inter', -apple-system, sans-serif;
-    min-height: 100vh; font-size: 13px;
-  }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
   a { color: inherit; text-decoration: none; }
 
-  /* ── Plugin Header ── */
-  .plugin-header {
-    background: var(--surface);
-    border-bottom: 2px solid var(--border);
-    padding: 0 24px;
-    display: flex; align-items: stretch;
-    height: 52px;
-    user-select: none;
+  /* ── Top Bar ── */
+  .topbar {
+    height: 48px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 20px; gap: 14px; flex-shrink: 0;
+    z-index: 10;
   }
-  .plugin-logo {
-    display: flex; align-items: center; gap: 10px;
-    padding-right: 24px; border-right: 1px solid var(--border);
-    margin-right: 24px;
-  }
-  .logo-mark {
-    width: 28px; height: 28px; background: var(--orange);
-    border-radius: 4px; display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 14px; color: #000; letter-spacing: -1px;
-    flex-shrink: 0;
-  }
-  .logo-text { font-size: 15px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; }
-  .logo-text span { color: var(--orange); }
-
-  /* Status LED strip */
-  .status-strip {
-    display: flex; align-items: center; gap: 20px; flex: 1;
-  }
-  .status-item { display: flex; align-items: center; gap: 6px; }
-  .led {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--muted); flex-shrink: 0;
-    box-shadow: none;
-  }
-  .led.active {
-    background: var(--green);
-    box-shadow: 0 0 6px var(--green);
-    animation: led-pulse 3s ease-in-out infinite;
-  }
-  .led.warn  { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
-  .led.error { background: var(--red);    box-shadow: 0 0 6px var(--red); }
-  @keyframes led-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
-  .status-label { font-size: 11px; font-weight: 500; color: var(--dim); letter-spacing: 0.3px; }
-  .status-val   { font-size: 11px; font-weight: 600; color: var(--text); }
-
-  .header-right {
-    display: flex; align-items: center; gap: 12px;
-    padding-left: 24px; border-left: 1px solid var(--border);
-  }
-  .help-btn {
-    width: 24px; height: 24px; border-radius: 50%;
-    background: var(--panel); border: 1px solid var(--border2);
+  .topbar-logo {
+    width: 32px; height: 32px; background: var(--orange); border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; color: var(--dim);
-    cursor: pointer; transition: all 0.15s;
+    font-weight: 800; font-size: 13px; color: #000; letter-spacing: -0.5px; flex-shrink: 0;
   }
-  .help-btn:hover { border-color: var(--orange); color: var(--orange); }
-
-  /* ── Trust Bar ── */
-  .trust-bar {
-    background: #1d1d1d; border-bottom: 1px solid var(--border);
-    padding: 8px 24px;
-    display: flex; align-items: center; justify-content: space-between;
+  .topbar-status { display: flex; align-items: center; gap: 7px; flex: 1; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.green { background: var(--green); box-shadow: 0 0 5px var(--green); animation: glow 3s ease-in-out infinite; }
+  .status-dot.red   { background: var(--red); }
+  @keyframes glow { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .status-text { font-size: 13px; font-weight: 500; color: var(--text); }
+  .topbar-time { font-size: 13px; font-weight: 600; color: var(--dim); margin-left: 8px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar-btn {
+    background: var(--orange); color: #000; font-size: 11px; font-weight: 700;
+    padding: 5px 14px; border-radius: 6px; border: none; cursor: pointer;
+    font-family: inherit; letter-spacing: 0.3px; transition: background 0.1s;
   }
-  .trust-left { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
-  .trust-left strong { color: var(--green); }
-  .trust-right { font-size: 11px; color: var(--muted); }
-  .trust-right a { color: var(--orange); }
+  .topbar-btn:hover { background: var(--orange2); }
+  .topbar-icon {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--panel);
+    border: 1px solid var(--border2); display: flex; align-items: center;
+    justify-content: center; font-size: 12px; cursor: pointer;
+    color: var(--dim); transition: all 0.1s;
+  }
+  .topbar-icon:hover { border-color: var(--orange); color: var(--orange); }
 
-  /* ── Main Layout ── */
-  .main { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 53px - 37px); }
+  /* ── Body Layout ── */
+  .body-wrap { display: flex; flex: 1; overflow: hidden; }
 
   /* ── Sidebar ── */
   .sidebar {
-    background: var(--surface); border-right: 1px solid var(--border);
-    padding: 16px 0; overflow-y: auto;
+    width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; padding: 16px 0 24px;
   }
-  .sidebar-section { margin-bottom: 20px; }
-  .sidebar-label {
-    font-size: 10px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 1.5px; color: var(--muted); padding: 0 16px 8px;
+  .sidebar-brand { padding: 4px 16px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .sidebar-brand-name { font-size: 14px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; }
+  .sidebar-brand-name span { color: var(--orange); }
+  .sidebar-brand-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .sidebar-section { margin-bottom: 6px; }
+  .sidebar-section-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.8px;
+    color: var(--muted); padding: 6px 16px 4px;
+    display: flex; align-items: center; gap: 7px;
   }
+  .sidebar-section-label svg { opacity: 0.5; }
 
-  /* Stats knobs */
-  .stat-row { padding: 6px 16px; display: flex; justify-content: space-between; align-items: center; }
-  .stat-name { font-size: 11px; color: var(--dim); }
-  .stat-value { font-size: 13px; font-weight: 700; color: var(--white); }
-  .stat-value.green  { color: var(--green); }
-  .stat-value.orange { color: var(--orange); }
-  .stat-value.red    { color: var(--red); }
-
-  .divider { height: 1px; background: var(--border); margin: 8px 0; }
-
-  .sidebar-project {
-    display: block; padding: 7px 16px;
-    border-left: 2px solid transparent;
-    transition: all 0.1s; cursor: pointer;
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 12px 7px 16px; margin: 1px 8px;
+    border-radius: 6px; cursor: pointer; transition: all 0.1s;
+    font-size: 13px; color: var(--dim); font-weight: 500;
+    border: 1px solid transparent;
   }
-  .sidebar-project:hover { background: var(--panel); border-left-color: var(--orange); }
-  .sidebar-project.active { background: var(--panel); border-left-color: var(--orange); }
-  .sp-name { font-size: 12px; font-weight: 600; color: var(--text); }
-  .sp-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-  /* ── Content ── */
-  .content { padding: 20px 28px; overflow-y: auto; }
-  .content-title {
-    font-size: 10px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 1.5px; color: var(--muted); margin-bottom: 14px;
+  .nav-item:hover { background: var(--panel); color: var(--text); }
+  .nav-item.active { background: var(--orange); color: #000; font-weight: 600; }
+  .nav-item.active svg { opacity: 1; }
+  .nav-item.soon { opacity: 0.4; cursor: default; }
+  .nav-item.soon:hover { background: none; color: var(--dim); }
+  .nav-soon-tag {
+    margin-left: auto; font-size: 9px; font-weight: 600;
+    background: var(--panel); border: 1px solid var(--border2);
+    color: var(--muted); padding: 1px 5px; border-radius: 3px;
   }
 
-  /* ── Backup Rows ── */
-  .backup-list { display: flex; flex-direction: column; gap: 4px; }
-  .backup-row {
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 6px; padding: 11px 14px;
-    transition: border-color 0.1s, background 0.1s;
-  }
-  .backup-row:hover { border-color: var(--border2); background: var(--raised); }
+  /* ── Main Content ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-  .backup-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .backup-info { flex: 1; }
-  .backup-filename { font-size: 13px; font-weight: 600; color: var(--white); }
-  .backup-project  { font-size: 11px; color: var(--orange); margin-top: 1px; font-weight: 500; }
-  .backup-time     { font-size: 10px; color: var(--muted); margin-top: 3px; }
-
-  .backup-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
-
-  .badge {
-    padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.5px;
+  /* Stats bar */
+  .stats-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 28px; display: flex; align-items: center; gap: 0; flex-shrink: 0; height: 56px;
   }
-  .badge-ok    { background: rgba(93,193,34,0.12); color: var(--green); border: 1px solid rgba(93,193,34,0.25); }
-  .badge-error { background: rgba(196,53,53,0.12); color: var(--red);   border: 1px solid rgba(196,53,53,0.25); }
+  .stat-item {
+    display: flex; flex-direction: column; padding: 0 24px 0 0; margin-right: 24px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-of-type { border-right: none; }
+  .stat-num { font-size: 20px; font-weight: 700; color: var(--white); line-height: 1; }
+  .stat-num.green  { color: var(--green); }
+  .stat-num.orange { color: var(--orange); }
+  .stat-num.red    { color: var(--red); }
+  .stat-num.blue   { color: var(--blue); }
+  .stat-lbl { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-top: 3px; }
+  .stats-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .watcher-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--green); font-weight: 600;
+  }
+  .watcher-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: glow 2s infinite; }
 
-  .restore-btn {
-    background: var(--raised); border: 1px solid var(--border2);
-    color: var(--dim); font-size: 10px; font-weight: 600;
-    padding: 3px 9px; border-radius: 3px;
-    text-decoration: none; transition: all 0.1s; font-family: inherit;
-    letter-spacing: 0.3px;
-  }
-  .restore-btn:hover { border-color: var(--orange); color: var(--orange); }
+  /* Content area */
+  .content-area { flex: 1; overflow-y: auto; padding: 24px 28px; }
 
-  /* Metadata pills */
-  .meta-row {
-    display: flex; gap: 5px; flex-wrap: wrap;
-    margin-top: 9px; padding-top: 9px;
-    border-top: 1px solid var(--border);
+  /* Section header */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
   }
-  .pill {
-    padding: 2px 7px; border-radius: 3px; font-size: 10px;
-    font-weight: 600; letter-spacing: 0.3px;
-  }
-  .pill-bpm   { background: rgba(93,193,34,0.1);  border: 1px solid rgba(93,193,34,0.2);  color: #7ecc44; }
-  .pill-track { background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.2); color: var(--blue); }
-  .pill-plug  { background: rgba(232,118,10,0.1); border: 1px solid rgba(232,118,10,0.2); color: var(--orange2); }
-  .pill-add   { background: rgba(93,193,34,0.15); border: 1px solid rgba(93,193,34,0.3);  color: var(--green); }
-  .pill-chg   { background: rgba(74,158,255,0.12);border: 1px solid rgba(74,158,255,0.25);color: var(--blue); }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.8px; color: var(--muted); }
+  .section-meta  { font-size: 11px; color: var(--muted); }
+  .section-meta span { color: var(--green); }
 
-  .empty {
-    color: var(--muted); font-size: 13px; padding: 48px 0;
-    text-align: center; line-height: 1.8;
+  /* ── Table ── */
+  .table-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .table-head {
+    display: grid; grid-template-columns: 2fr 1.2fr 80px 80px 60px 140px 70px 160px;
+    padding: 8px 16px; border-bottom: 1px solid var(--border);
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted);
   }
+  .table-row {
+    display: grid; grid-template-columns: 2fr 1.2fr 80px 80px 60px 140px 70px 160px;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    align-items: center; transition: background 0.1s;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: var(--raised); }
+
+  .cell-file { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .file-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .file-dot.ok    { background: var(--green); }
+  .file-dot.error { background: var(--red); }
+  .file-name { font-size: 13px; font-weight: 600; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .cell-project { font-size: 12px; color: var(--orange); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cell-bpm     { font-size: 12px; color: var(--green); font-weight: 600; }
+  .cell-key     { font-size: 12px; color: var(--blue); font-weight: 600; }
+  .cell-tracks  { font-size: 12px; color: var(--dim); }
+  .cell-time    { font-size: 11px; color: var(--muted); }
+  .cell-size    { font-size: 11px; color: var(--muted); }
+
+  .cell-actions { display: flex; gap: 5px; justify-content: flex-end; }
+  .act-btn {
+    font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 4px;
+    border: 1px solid var(--border2); background: var(--raised);
+    color: var(--dim); cursor: pointer; font-family: inherit;
+    transition: all 0.1s; text-decoration: none; white-space: nowrap;
+  }
+  .act-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .act-btn.primary { border-color: rgba(93,193,34,0.3); color: var(--green); background: rgba(93,193,34,0.07); }
+  .act-btn.primary:hover { border-color: var(--green); background: rgba(93,193,34,0.15); }
+
+  /* Diff tags inline */
+  .diff-tags { display: flex; gap: 4px; margin-top: 2px; flex-wrap: wrap; }
+  .diff-tag {
+    font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 3px;
+    letter-spacing: 0.2px;
+  }
+  .diff-add { background: rgba(93,193,34,0.12);  border: 1px solid rgba(93,193,34,0.25);  color: var(--green); }
+  .diff-chg { background: rgba(74,158,255,0.12); border: 1px solid rgba(74,158,255,0.25); color: var(--blue); }
+  .diff-plug{ background: rgba(232,118,10,0.1);  border: 1px solid rgba(232,118,10,0.2);  color: var(--orange2); }
+
+  /* Projects view */
+  .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .project-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; transition: border-color 0.1s; cursor: pointer; text-decoration: none; display: block;
+  }
+  .project-card:hover { border-color: var(--orange); }
+  .pc-name { font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+  .pc-stats { display: flex; flex-direction: column; gap: 4px; }
+  .pc-stat { display: flex; justify-content: space-between; font-size: 11px; }
+  .pc-stat-label { color: var(--muted); }
+  .pc-stat-val   { color: var(--text); font-weight: 600; }
+  .pc-bar { height: 2px; background: var(--border); border-radius: 1px; margin-top: 10px; overflow: hidden; }
+  .pc-bar-fill { height: 100%; background: var(--orange); border-radius: 1px; }
+
+  /* Coming soon panel */
+  .coming-soon {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 300px; gap: 12px;
+  }
+  .cs-icon { font-size: 40px; opacity: 0.4; }
+  .cs-title { font-size: 16px; font-weight: 700; color: var(--dim); }
+  .cs-sub { font-size: 13px; color: var(--muted); text-align: center; max-width: 360px; line-height: 1.6; }
+
+  /* Empty state */
+  .empty { padding: 48px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.8; }
   .empty strong { color: var(--dim); }
 
   /* ── Onboarding Modal ── */
   .modal-bg {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.75);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100; backdrop-filter: blur(4px);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(4px);
   }
   .modal-bg.hidden { display: none; }
   .modal {
     background: var(--surface); border: 1px solid var(--border2);
-    border-radius: 10px; width: 480px; overflow: hidden;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    border-radius: 10px; width: 480px; box-shadow: 0 32px 80px rgba(0,0,0,0.7); overflow: hidden;
   }
-  .modal-header {
-    background: var(--panel); padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
+  .modal-head {
+    background: var(--panel); padding: 14px 20px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
   }
-  .modal-header-title { font-size: 13px; font-weight: 700; color: var(--white); }
-  .modal-step-indicator { display: flex; gap: 6px; }
-  .step-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--border2); transition: background 0.2s;
-  }
-  .step-dot.active { background: var(--orange); }
-
+  .modal-head-title { font-size: 13px; font-weight: 700; color: var(--white); }
+  .step-dots { display: flex; gap: 6px; }
+  .sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--border2); transition: background 0.2s; }
+  .sdot.active { background: var(--orange); }
   .modal-body { padding: 28px 24px; }
-  .modal-step { display: none; }
-  .modal-step.active { display: block; }
-
-  .step-icon { font-size: 36px; margin-bottom: 16px; }
-  .step-title { font-size: 18px; font-weight: 700; color: var(--white); margin-bottom: 10px; }
-  .step-text {
-    font-size: 14px; color: var(--dim); line-height: 1.7;
-  }
-  .step-text strong { color: var(--text); }
-  .step-text code {
-    background: var(--panel); border: 1px solid var(--border);
-    padding: 1px 5px; border-radius: 3px; font-size: 12px;
-    color: var(--orange2); font-family: 'SF Mono', monospace;
-  }
-
-  .step-callout {
-    background: var(--panel); border: 1px solid var(--border);
-    border-left: 3px solid var(--orange);
-    border-radius: 4px; padding: 12px 14px; margin-top: 16px;
-    font-size: 12px; color: var(--dim); line-height: 1.6;
-  }
-  .step-callout strong { color: var(--text); }
-
-  .modal-footer {
-    padding: 16px 24px; border-top: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .btn-ghost {
-    background: none; border: 1px solid var(--border2);
-    color: var(--dim); font-size: 12px; font-weight: 600;
-    padding: 7px 16px; border-radius: 5px; cursor: pointer;
-    font-family: inherit; transition: all 0.1s;
-  }
-  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
-  .btn-orange {
-    background: var(--orange); border: none;
-    color: #000; font-size: 12px; font-weight: 700;
-    padding: 7px 20px; border-radius: 5px; cursor: pointer;
-    font-family: inherit; transition: background 0.1s;
-  }
+  .mstep { display: none; }
+  .mstep.active { display: block; }
+  .mstep-icon { font-size: 32px; margin-bottom: 14px; }
+  .mstep-title { font-size: 18px; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+  .mstep-text { font-size: 14px; color: var(--dim); line-height: 1.75; }
+  .mstep-text strong { color: var(--text); }
+  .mstep-text code { background: var(--panel); border: 1px solid var(--border); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--orange2); font-family: 'SF Mono', monospace; }
+  .callout { background: var(--panel); border-left: 3px solid var(--orange); border-radius: 4px; padding: 12px 14px; margin-top: 14px; font-size: 12px; color: var(--dim); line-height: 1.65; }
+  .callout strong { color: var(--text); }
+  .modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; }
+  .btn-ghost { background: none; border: 1px solid var(--border2); color: var(--dim); font-size: 12px; font-weight: 600; padding: 7px 16px; border-radius: 5px; cursor: pointer; font-family: inherit; transition: all 0.1s; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn-orange { background: var(--orange); border: none; color: #000; font-size: 12px; font-weight: 700; padding: 7px 20px; border-radius: 5px; cursor: pointer; font-family: inherit; transition: background 0.1s; }
   .btn-orange:hover { background: var(--orange2); }
 
-  /* Bottom activity bar */
-  .activity-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--surface); border-top: 1px solid var(--border);
-    padding: 6px 24px;
+  /* Bottom bar */
+  .bottom-bar {
+    height: 28px; background: var(--surface); border-top: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; flex-shrink: 0;
   }
-  .activity-left { display: flex; align-items: center; gap: 14px; font-size: 10px; color: var(--muted); }
-  .activity-right { font-size: 10px; color: var(--muted); }
-  .activity-right a { color: var(--orange); }
+  .bb-left { display: flex; align-items: center; gap: 14px; font-size: 10px; color: var(--muted); }
+  .bb-right { font-size: 10px; color: var(--muted); }
+  .bb-right a { color: var(--orange); }
 </style>
 </head>
 <body>
 
-<!-- ── Plugin Header ── -->
-<div class="plugin-header">
-  <div class="plugin-logo">
-    <div class="logo-mark">PV</div>
-    <div class="logo-text">Producer<span>Vault</span></div>
+<!-- ── Top Bar ── -->
+<div class="topbar">
+  <div class="topbar-logo">DD</div>
+  <div class="topbar-status">
+    <div class="status-dot green" id="watcher-led"></div>
+    <span class="status-text" id="status-text">Watcher active — {{ watch_folder | replace('/Users/miahsm1/', '~/') }}</span>
+    <span class="topbar-time" id="clock"></span>
   </div>
-  <div class="status-strip">
-    <div class="status-item">
-      <div class="led active" id="watcher-led"></div>
-      <span class="status-label">WATCHER</span>
-      <span class="status-val">ACTIVE</span>
-    </div>
-    <div class="status-item">
-      <div class="led" id="upload-led"></div>
-      <span class="status-label">LAST BACKUP</span>
-      <span class="status-val" id="last-backup-val">
-        {% if backups %}{{ backups[0].backed_up_at[11:16] }} UTC{% else %}—{% endif %}
-      </span>
-    </div>
-    <div class="status-item">
-      <div class="led" style="background:var(--blue)"></div>
-      <span class="status-label">CLOUD</span>
-      <span class="status-val">{{ total_size }}</span>
-    </div>
-  </div>
-  <div class="header-right">
-    <div class="help-btn" onclick="showOnboarding()" title="How it works">?</div>
+  <div class="topbar-right">
+    <button class="topbar-btn" onclick="showOnboarding()">? How it works</button>
+    <a href="/landing" class="topbar-icon" title="About">↗</a>
   </div>
 </div>
 
-<!-- ── Trust Bar ── -->
-<div class="trust-bar">
-  <div class="trust-left">
-    <strong>●</strong>&nbsp;
-    Watching <strong>{{ watch_folder }}</strong> — all saves are encrypted in transit and stored in <strong>your private B2 bucket</strong>.
-  </div>
-  <div class="trust-right">We never see your files. &nbsp;<a href="/landing">About ProducerVault</a></div>
-</div>
-
-<!-- ── Main ── -->
-<div class="main">
+<!-- ── Body ── -->
+<div class="body-wrap">
 
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="sidebar-section">
-      <div class="sidebar-label">Vault Stats</div>
-      <div class="stat-row"><span class="stat-name">Backed up</span><span class="stat-value green">{{ total }}</span></div>
-      <div class="stat-row"><span class="stat-name">Errors</span><span class="stat-value {% if errors > 0 %}red{% else %}green{% endif %}">{{ errors }}</span></div>
-      <div class="stat-row"><span class="stat-name">Projects</span><span class="stat-value orange">{{ projects|length }}</span></div>
-      <div class="stat-row"><span class="stat-name">Storage</span><span class="stat-value">{{ total_size }}</span></div>
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-name">DAW <span>Doctor</span></div>
+      <div class="sidebar-brand-sub">Session backup &amp; health</div>
     </div>
 
-    {% if projects %}
-    <div class="divider"></div>
     <div class="sidebar-section">
-      <div class="sidebar-label">Projects</div>
-      {% for p in projects %}
-      <a href="/project/{{ p.project_name }}" class="sidebar-project">
-        <div class="sp-name">{{ p.project_name }}</div>
-        <div class="sp-meta">{{ p.cnt }} version{{ 's' if p.cnt != 1 }} · {{ p.last_backup[:10] }}</div>
-      </a>
-      {% endfor %}
+      <div class="sidebar-section-label">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        VAULT
+      </div>
+      <div class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/><rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showSection('projects')" id="nav-projects">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3h12M1 7h12M1 11h7"/></svg>
+        Projects
+      </div>
     </div>
-    {% endif %}
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 9L5 1l4 8"/><path d="M2.5 6h5"/></svg>
+        TOOLING
+      </div>
+      <div class="nav-item soon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
+        Diagnostics
+        <span class="nav-soon-tag">soon</span>
+      </div>
+      <div class="nav-item soon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="12" height="8" rx="1"/><path d="M4 3V2M10 3V2M1 6h12"/></svg>
+        Track Monitor
+        <span class="nav-soon-tag">soon</span>
+      </div>
+      <div class="nav-item soon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3h12M1 6h9M1 9h6M1 12h4"/></svg>
+        Logs
+        <span class="nav-soon-tag">soon</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="8" height="8" rx="1"/><path d="M3 1v8M1 4h8"/></svg>
+        SYSTEM
+      </div>
+      <div class="nav-item soon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="2.5"/><path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.8 2.8l1.4 1.4M9.8 9.8l1.4 1.4M2.8 11.2l1.4-1.4M9.8 4.2l1.4-1.4"/></svg>
+        Settings
+        <span class="nav-soon-tag">soon</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Content -->
-  <div class="content">
-    <div class="content-title">Recent Activity</div>
-    <div class="backup-list">
-      {% if backups %}
-        {% for b in backups %}
-        <div class="backup-row">
-          <div class="backup-top">
-            <div class="backup-info">
-              <div class="backup-filename">{{ b.filename }}</div>
-              <div class="backup-project">{{ b.project_name or 'root' }}</div>
-              <div class="backup-time">{{ b.backed_up_at[:19].replace('T',' ') }} UTC
-                &nbsp;·&nbsp;
-                {% if b.size_bytes %}{{ (b.size_bytes / 1024)|round(1) }} KB{% else %}—{% endif %}
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-num green">{{ total }}</div>
+        <div class="stat-lbl">Backed Up</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num orange">{{ projects|length }}</div>
+        <div class="stat-lbl">Projects</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num {% if errors > 0 %}red{% else %}green{% endif %}">{{ errors }}</div>
+        <div class="stat-lbl">Errors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num blue">{{ total_size }}</div>
+        <div class="stat-lbl">Cloud Storage</div>
+      </div>
+      <div class="stats-right">
+        <div class="watcher-pill">
+          <div class="watcher-pill-dot"></div>
+          Watching all saves
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-area">
+
+      <!-- ── Dashboard Section ── -->
+      <div id="section-dashboard">
+        <div class="section-header">
+          <div class="section-title">Recent Activity</div>
+          <div class="section-meta">
+            <span>{{ total }}</span> saved &nbsp;·&nbsp; {{ errors }} error{{ 's' if errors != 1 }}
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-head">
+            <div>FILE</div>
+            <div>PROJECT</div>
+            <div>BPM</div>
+            <div>KEY</div>
+            <div>TRACKS</div>
+            <div>SAVED</div>
+            <div>SIZE</div>
+            <div style="text-align:right">ACTIONS</div>
+          </div>
+
+          {% if backups %}
+            {% for b in backups %}
+            <div class="table-row">
+              <div class="cell-file">
+                <div class="file-dot {{ b.status }}"></div>
+                <div>
+                  <div class="file-name">{{ b.filename }}</div>
+                  {% if b.diff %}
+                  <div class="diff-tags">
+                    {% for d in b.diff[:3] %}
+                    <span class="diff-tag {% if '+' in d %}diff-add{% else %}diff-chg{% endif %}">{{ d }}</span>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="cell-project">{{ b.project_name or '—' }}</div>
+              <div class="cell-bpm">{{ b.bpm or '—' }}</div>
+              <div class="cell-key">{{ b.key or '—' }}</div>
+              <div class="cell-tracks">{{ b.track_count or '—' }}</div>
+              <div class="cell-time">{{ b.backed_up_at[5:16].replace('T',' ') }}</div>
+              <div class="cell-size">{% if b.size_bytes %}{{ (b.size_bytes/1024)|round(1) }}KB{% else %}—{% endif %}</div>
+              <div class="cell-actions">
+                <a class="act-btn" href="/project/{{ b.project_name }}">Timeline</a>
+                {% if b.status == 'ok' %}
+                <a class="act-btn primary" href="/restore/{{ b.id }}">↓ Restore</a>
+                {% endif %}
               </div>
             </div>
-            <div class="backup-actions">
-              <span class="badge badge-{{ b.status }}">{{ 'ok' if b.status == 'ok' else 'err' }}</span>
-              {% if b.status == 'ok' %}
-              <a class="restore-btn" href="/restore/{{ b.id }}">↓ restore</a>
-              {% endif %}
-            </div>
-          </div>
-
-          {% if b.bpm or b.track_count or b.plugins_list or b.diff %}
-          <div class="meta-row">
-            {% if b.bpm %}<span class="pill pill-bpm">{{ b.bpm }} BPM</span>{% endif %}
-            {% if b.key %}<span class="pill pill-bpm">{{ b.key }}</span>{% endif %}
-            {% if b.track_count %}<span class="pill pill-track">{{ b.track_count }} tracks</span>{% endif %}
-            {% for plugin in b.plugins_list[:6] %}<span class="pill pill-plug">{{ plugin }}</span>{% endfor %}
-            {% if b.plugins_list|length > 6 %}<span class="pill pill-plug">+{{ b.plugins_list|length - 6 }}</span>{% endif %}
-            {% for d in b.diff %}
-              <span class="pill {% if '+' in d %}pill-add{% else %}pill-chg{% endif %}">{{ d }}</span>
             {% endfor %}
-          </div>
+          {% else %}
+            <div class="empty">
+              <strong>No backups yet.</strong><br>
+              Save any project in your Ableton folder and it'll appear here within seconds.
+            </div>
           {% endif %}
         </div>
-        {% endfor %}
-      {% else %}
-        <div class="empty">
-          <strong>No backups yet.</strong><br>
-          Open Ableton and save a project — it'll appear here within seconds.
+      </div>
+
+      <!-- ── Projects Section ── -->
+      <div id="section-projects" style="display:none">
+        <div class="section-header">
+          <div class="section-title">Projects</div>
+          <div class="section-meta">{{ projects|length }} project{{ 's' if projects|length != 1 }}</div>
         </div>
-      {% endif %}
-    </div>
-  </div>
-</div>
+        {% if projects %}
+        <div class="project-grid">
+          {% for p in projects %}
+          <a href="/project/{{ p.project_name }}" class="project-card">
+            <div class="pc-name">{{ p.project_name }}</div>
+            <div class="pc-stats">
+              <div class="pc-stat"><span class="pc-stat-label">Versions</span><span class="pc-stat-val">{{ p.cnt }}</span></div>
+              <div class="pc-stat"><span class="pc-stat-label">Last saved</span><span class="pc-stat-val">{{ p.last_backup[:10] }}</span></div>
+            </div>
+            <div class="pc-bar"><div class="pc-bar-fill" style="width:{{ [p.cnt * 8, 100]|min }}%"></div></div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty"><strong>No projects yet.</strong><br>Backups will auto-group by project folder.</div>
+        {% endif %}
+      </div>
 
-<!-- ── Activity Bar ── -->
-<div class="activity-bar">
-  <div class="activity-left">
-    <span>ProducerVault v1.0</span>
+      <!-- ── Coming Soon Sections ── -->
+      <div id="section-diagnostics" style="display:none">
+        <div class="coming-soon">
+          <div class="cs-icon">🩺</div>
+          <div class="cs-title">Diagnostics — Coming Soon</div>
+          <div class="cs-sub">System health scanning for Ableton. Buffer size, CPU throttling, audio interface health, Spotlight interference, Low Power Mode — all in one scan.</div>
+        </div>
+      </div>
+      <div id="section-monitor" style="display:none">
+        <div class="coming-soon">
+          <div class="cs-icon">📊</div>
+          <div class="cs-title">Track Monitor — Coming Soon</div>
+          <div class="cs-sub">Live per-track CPU from inside Ableton. See exactly which plugin is eating your CPU in real time, with sparkline history and threshold alerts.</div>
+        </div>
+      </div>
+
+    </div><!-- /content-area -->
+  </div><!-- /main -->
+</div><!-- /body-wrap -->
+
+<!-- Bottom Bar -->
+<div class="bottom-bar">
+  <div class="bb-left">
+    <span>DAW Doctor v1.0</span>
     <span>·</span>
-    <span>Ableton Live Backup</span>
+    <span>Session Backup + Health</span>
   </div>
-  <div class="activity-right">
-    <a href="/landing">Pricing</a> &nbsp;·&nbsp;
-    <span>Built by a producer, for producers.</span>
+  <div class="bb-right">
+    <a href="/landing">Pricing</a>&nbsp;·&nbsp;Built by a producer, for producers.
   </div>
 </div>
 
-<!-- ── Onboarding Modal ── -->
+<!-- Onboarding Modal -->
 <div class="modal-bg hidden" id="onboarding-modal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-header-title">Welcome to ProducerVault</div>
-      <div class="modal-step-indicator">
-        <div class="step-dot active" id="dot-0"></div>
-        <div class="step-dot" id="dot-1"></div>
-        <div class="step-dot" id="dot-2"></div>
+    <div class="modal-head">
+      <div class="modal-head-title">Welcome to DAW Doctor</div>
+      <div class="step-dots">
+        <div class="sdot active" id="sdot-0"></div>
+        <div class="sdot" id="sdot-1"></div>
+        <div class="sdot" id="sdot-2"></div>
       </div>
     </div>
     <div class="modal-body">
-
-      <!-- Step 1 -->
-      <div class="modal-step active" id="step-0">
-        <div class="step-icon">⚡</div>
-        <div class="step-title">It's already working.</div>
-        <div class="step-text">
-          ProducerVault is <strong>watching your Ableton folder right now</strong>.
-          Every time you hit <code>⌘S</code> in Ableton, your project is automatically
-          backed up to your private cloud storage — no clicks, no thinking about it.
-          <div class="step-callout">
-            <strong>Watching:</strong> {{ watch_folder }}<br>
-            Backs up <strong>.als, .wav, .aif, .aiff, .flac</strong> files on every save.
-          </div>
+      <div class="mstep active" id="mstep-0">
+        <div class="mstep-icon">⚡</div>
+        <div class="mstep-title">It's already running.</div>
+        <div class="mstep-text">DAW Doctor is <strong>watching your Ableton folder right now</strong>. Every time you hit <code>⌘S</code>, your session backs up to your private cloud automatically.
+          <div class="callout"><strong>Watching:</strong> {{ watch_folder }}<br>Backs up <strong>.als · .wav · .aif · .flac</strong> on every save.</div>
         </div>
       </div>
-
-      <!-- Step 2 -->
-      <div class="modal-step" id="step-1">
-        <div class="step-icon">🧠</div>
-        <div class="step-title">Every save is a version.</div>
-        <div class="step-text">
-          ProducerVault reads your <code>.als</code> files and extracts the BPM, key,
-          track count, and plugins for every single save. So instead of a pile of
-          mystery files, you get a <strong>full timeline of your session</strong> —
-          exactly what it sounded like at 3am, last Tuesday, before you made that change.
-          <div class="step-callout">
-            <strong>Example:</strong> midnight_session.als · 128 BPM · F# Minor · 14 tracks · Serum, Massive
-          </div>
+      <div class="mstep" id="mstep-1">
+        <div class="mstep-icon">🧠</div>
+        <div class="mstep-title">Every save is a version.</div>
+        <div class="mstep-text">DAW Doctor reads your <code>.als</code> files and logs the <strong>BPM, key, track count, and plugins</strong> for every single save — so your history is actually readable, not just a pile of timestamps.
+          <div class="callout"><strong>Example:</strong> midnight_session.als · 128 BPM · F# Minor · 14 tracks · Serum, Massive</div>
         </div>
       </div>
-
-      <!-- Step 3 -->
-      <div class="modal-step" id="step-2">
-        <div class="step-icon">↩️</div>
-        <div class="step-title">Restore any version in one click.</div>
-        <div class="step-text">
-          See the <strong>↓ restore</strong> button next to every backup? Click it and
-          that exact version of your file downloads immediately. Drop it back into
-          your Ableton folder and you're back. No complicated recovery. No data loss.
-          <div class="step-callout">
-            <strong>Your files are in your own Backblaze B2 bucket.</strong>
-            We never store or see your projects. If you cancel, your files stay in your bucket.
-          </div>
+      <div class="mstep" id="mstep-2">
+        <div class="mstep-icon">↩️</div>
+        <div class="mstep-title">Restore any version instantly.</div>
+        <div class="mstep-text">Hit <strong>↓ Restore</strong> on any row and that exact version downloads immediately. Drop it back into Ableton. Done.
+          <div class="callout"><strong>Your files stay in your own Backblaze B2 bucket.</strong> We never store or see your sessions. Cancel any time — your files stay yours.</div>
         </div>
       </div>
     </div>
-
-    <div class="modal-footer">
-      <button class="btn-ghost" id="modal-back" onclick="modalStep(-1)" style="visibility:hidden">← Back</button>
-      <button class="btn-orange" id="modal-next" onclick="modalStep(1)">Next →</button>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="modal-back" onclick="mStep(-1)" style="visibility:hidden">← Back</button>
+      <button class="btn-orange" id="modal-next" onclick="mStep(1)">Next →</button>
     </div>
   </div>
 </div>
 
 <script>
-  // ── Onboarding ──
-  let currentStep = 0;
-  const totalSteps = 3;
+  // Clock
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
+  }
+  tick(); setInterval(tick, 1000);
 
+  // Section nav
+  const sections = ['dashboard','projects','diagnostics','monitor'];
+  function showSection(name) {
+    sections.forEach(s => {
+      document.getElementById('section-'+s).style.display = s === name ? '' : 'none';
+      const nav = document.getElementById('nav-'+s);
+      if (nav) nav.classList.toggle('active', s === name);
+    });
+  }
+
+  // Onboarding
+  let step = 0;
   function showOnboarding() {
     document.getElementById('onboarding-modal').classList.remove('hidden');
-    goToStep(0);
+    goStep(0);
   }
-
-  function goToStep(n) {
-    currentStep = n;
-    for (let i = 0; i < totalSteps; i++) {
-      document.getElementById(`step-${i}`).classList.toggle('active', i === n);
-      document.getElementById(`dot-${i}`).classList.toggle('active', i === n);
-    }
-    document.getElementById('modal-back').style.visibility = n === 0 ? 'hidden' : 'visible';
-    document.getElementById('modal-next').textContent = n === totalSteps - 1 ? 'Got it ✓' : 'Next →';
+  function goStep(n) {
+    step = n;
+    [0,1,2].forEach(i => {
+      document.getElementById('mstep-'+i).classList.toggle('active', i===n);
+      document.getElementById('sdot-'+i).classList.toggle('active', i===n);
+    });
+    document.getElementById('modal-back').style.visibility = n===0 ? 'hidden' : 'visible';
+    document.getElementById('modal-next').textContent = n===2 ? 'Got it ✓' : 'Next →';
   }
-
-  function modalStep(dir) {
-    const next = currentStep + dir;
-    if (next >= totalSteps) {
-      document.getElementById('onboarding-modal').classList.add('hidden');
-      localStorage.setItem('pv_onboarded', '1');
-    } else if (next >= 0) {
-      goToStep(next);
-    }
+  function mStep(dir) {
+    const next = step + dir;
+    if (next > 2) { document.getElementById('onboarding-modal').classList.add('hidden'); localStorage.setItem('dd_onboarded','1'); }
+    else if (next >= 0) goStep(next);
   }
-
-  // Show on first visit
-  if (!localStorage.getItem('pv_onboarded')) {
-    showOnboarding();
-  }
-
-  // Close on bg click
   document.getElementById('onboarding-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-      this.classList.add('hidden');
-      localStorage.setItem('pv_onboarded', '1');
-    }
+    if (e.target===this) { this.classList.add('hidden'); localStorage.setItem('dd_onboarded','1'); }
   });
+  if (!localStorage.getItem('dd_onboarded')) showOnboarding();
 
-  // ── Upload LED flash on new backup ──
+  // Live refresh
   let lastCount = {{ backups|length }};
   setInterval(() => {
-    fetch('/api/backups').then(r => r.json()).then(data => {
-      if (data.length !== lastCount) {
-        lastCount = data.length;
-        const led = document.getElementById('upload-led');
-        led.classList.add('active');
-        setTimeout(() => led.classList.remove('active'), 3000);
-        location.reload();
-      }
+    fetch('/api/backups').then(r=>r.json()).then(data => {
+      if (data.length !== lastCount) { lastCount = data.length; location.reload(); }
     });
   }, 10000);
 </script>
-
 </body>
 </html>
