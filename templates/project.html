@@ -4,148 +4,165 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ name }} — ProducerVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:      #08090d;
-    --surface: #0d0f1a;
-    --card:    #11131e;
-    --border:  #1e2235;
-    --text:    #e2e8f0;
-    --dim:     #5a6080;
-    --accent:  #7c3aed;
-    --accent2: #a855f7;
-    --green:   #22c55e;
-    --red:     #ef4444;
+    --bg:      #1a1a1a; --surface: #222222; --panel: #2a2a2a;
+    --raised:  #323232; --border: #3a3a3a; --border2: #444444;
+    --text:    #d0d0d0; --dim: #7a7a7a;    --muted:  #555555;
+    --orange:  #e8760a; --orange2: #f09030;
+    --green:   #5dc122; --red: #c43535; --blue: #4a9eff; --white: #eeeeee;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; min-height: 100vh; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; font-size: 13px; }
+  a { color: inherit; text-decoration: none; }
 
-  header {
-    padding: 24px 40px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
+  .plugin-header {
+    background: var(--surface); border-bottom: 2px solid var(--border);
+    padding: 0 24px; display: flex; align-items: center; height: 52px;
+    justify-content: space-between;
   }
-  .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-  .logo span { color: var(--accent2); }
-  .back { color: var(--dim); font-size: 12px; text-decoration: none; transition: color 0.15s; }
-  .back:hover { color: var(--accent2); }
+  .plugin-logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 28px; height: 28px; background: var(--orange); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: #000; letter-spacing: -1px;
+  }
+  .logo-text { font-size: 15px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; }
+  .logo-text span { color: var(--orange); }
+  .back-btn {
+    font-size: 12px; color: var(--dim); padding: 6px 14px;
+    border: 1px solid var(--border); border-radius: 4px;
+    transition: all 0.1s;
+  }
+  .back-btn:hover { border-color: var(--orange); color: var(--orange); }
 
-  .hero { padding: 32px 40px 20px; }
-  .hero-name { font-size: 28px; font-weight: 700; color: var(--text); }
-  .hero-meta { color: var(--dim); font-size: 13px; margin-top: 6px; }
-  .hero-size  { color: var(--accent2); }
+  .hero { padding: 24px 28px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .hero-name { font-size: 22px; font-weight: 700; color: var(--white); }
+  .hero-meta { font-size: 12px; color: var(--dim); margin-top: 5px; }
+  .hero-meta span { color: var(--orange); }
 
-  .section { padding: 20px 40px 40px; }
-  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--dim); margin-bottom: 16px; }
+  .content { padding: 24px 28px 60px; max-width: 800px; }
+  .content-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 16px; }
 
   /* Timeline */
-  .timeline { display: flex; flex-direction: column; gap: 0; }
-  .tl-item { display: flex; gap: 0; }
-
-  .tl-spine {
-    display: flex; flex-direction: column; align-items: center;
-    width: 36px; flex-shrink: 0;
-  }
+  .timeline { display: flex; flex-direction: column; }
+  .tl-item { display: flex; gap: 12px; }
+  .tl-spine { display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0; }
   .tl-dot {
-    width: 12px; height: 12px; border-radius: 50%;
-    background: var(--accent); border: 2px solid var(--bg);
-    flex-shrink: 0; margin-top: 16px; z-index: 1;
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border2);
+    background: var(--panel); flex-shrink: 0; margin-top: 14px; z-index: 1;
+    transition: all 0.15s;
   }
-  .tl-dot.first { background: var(--green); }
-  .tl-line { width: 2px; background: var(--border); flex: 1; margin-top: 0; }
+  .tl-dot.latest { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 8px rgba(232,118,10,0.5); }
+  .tl-dot.ok { background: var(--green); border-color: var(--green); }
+  .tl-dot.error { background: var(--red); border-color: var(--red); }
+  .tl-line { width: 2px; background: var(--border); flex: 1; margin-top: 2px; }
   .tl-item:last-child .tl-line { display: none; }
 
   .tl-card {
-    flex: 1; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 14px 16px; margin-bottom: 8px;
-    transition: border-color 0.15s;
+    flex: 1; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 12px 14px; margin-bottom: 6px;
+    transition: border-color 0.1s;
   }
-  .tl-card:hover { border-color: var(--accent); }
+  .tl-card:hover { border-color: var(--border2); }
+  .tl-card.latest { border-color: rgba(232,118,10,0.4); }
 
   .tl-top { display: flex; align-items: flex-start; justify-content: space-between; }
-  .tl-filename { font-size: 13px; font-weight: 600; }
-  .tl-time { font-size: 11px; color: var(--dim); margin-top: 3px; }
-  .tl-right { display: flex; gap: 8px; align-items: center; }
+  .tl-filename { font-size: 13px; font-weight: 600; color: var(--white); }
+  .tl-time { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .tl-right { display: flex; gap: 7px; align-items: center; }
 
-  .meta-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-  .meta-pill { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
-  .meta-pill.bpm    { background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.2);  color: #4ade80; }
-  .meta-pill.track  { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); color: #fbbf24; }
-  .meta-pill.plugin { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.2); color: var(--accent2); }
-  .meta-pill.diff-add { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
-  .meta-pill.diff-chg { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); color: #fbbf24; }
-  .meta-pill.size   { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); color: #60a5fa; }
+  .latest-tag {
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+    background: rgba(232,118,10,0.15); border: 1px solid rgba(232,118,10,0.3);
+    color: var(--orange); padding: 2px 7px; border-radius: 3px; margin-left: 8px;
+  }
 
-  .badge { padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 600; white-space: nowrap; }
-  .badge-ok    { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
-  .badge-error { background: rgba(239,68,68,0.1); color: var(--red);   border: 1px solid rgba(239,68,68,0.2); }
+  .meta-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border); }
+  .pill { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+  .pill-bpm   { background: rgba(93,193,34,0.1);  border: 1px solid rgba(93,193,34,0.2);  color: #7ecc44; }
+  .pill-track { background: rgba(74,158,255,0.1); border: 1px solid rgba(74,158,255,0.2); color: var(--blue); }
+  .pill-plug  { background: rgba(232,118,10,0.1); border: 1px solid rgba(232,118,10,0.2); color: var(--orange2); }
+  .pill-add   { background: rgba(93,193,34,0.15); border: 1px solid rgba(93,193,34,0.3);  color: var(--green); }
+  .pill-chg   { background: rgba(74,158,255,0.12);border: 1px solid rgba(74,158,255,0.25);color: var(--blue); }
+  .pill-size  { background: rgba(120,120,120,0.1);border: 1px solid rgba(120,120,120,0.2);color: var(--dim); }
 
+  .badge { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-ok    { background: rgba(93,193,34,0.12); color: var(--green); border: 1px solid rgba(93,193,34,0.25); }
+  .badge-error { background: rgba(196,53,53,0.12); color: var(--red);   border: 1px solid rgba(196,53,53,0.25); }
   .restore-btn {
-    background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
-    color: var(--accent2); font-size: 10px; font-weight: 600;
-    padding: 3px 10px; border-radius: 6px; cursor: pointer;
-    text-decoration: none; transition: background 0.15s; font-family: inherit;
+    background: var(--raised); border: 1px solid var(--border2);
+    color: var(--dim); font-size: 10px; font-weight: 600;
+    padding: 3px 9px; border-radius: 3px; text-decoration: none;
+    transition: all 0.1s; font-family: inherit;
   }
-  .restore-btn:hover { background: rgba(124,58,237,0.3); }
+  .restore-btn:hover { border-color: var(--orange); color: var(--orange); }
 
-  .empty { color: var(--dim); font-size: 13px; padding: 40px 0; text-align: center; }
+  .empty { color: var(--muted); font-size: 13px; padding: 48px 0; text-align: center; }
 
-  .latest-badge {
-    background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
-    color: var(--green); font-size: 10px; font-weight: 600;
-    padding: 2px 8px; border-radius: 999px;
+  .activity-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 6px 24px; display: flex; align-items: center; justify-content: space-between;
   }
+  .activity-bar span { font-size: 10px; color: var(--muted); }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="logo">Producer<span>Vault</span></div>
-  <a href="/" class="back">← all projects</a>
-</header>
+<div class="plugin-header">
+  <div class="plugin-logo">
+    <div class="logo-mark">PV</div>
+    <div class="logo-text">Producer<span>Vault</span></div>
+  </div>
+  <a href="/" class="back-btn">← All Activity</a>
+</div>
 
 <div class="hero">
   <div class="hero-name">{{ name }}</div>
   <div class="hero-meta">
-    {{ backups|length }} version{{ 's' if backups|length != 1 }} saved &nbsp;·&nbsp;
-    <span class="hero-size">{{ total_size }} in cloud</span>
+    {{ backups|length }} version{{ 's' if backups|length != 1 }} &nbsp;·&nbsp;
+    <span>{{ total_size }} in your vault</span>
   </div>
 </div>
 
-<div class="section">
-  <div class="section-title">Version Timeline</div>
+<div class="content">
+  <div class="content-title">Version Timeline — newest first</div>
+
   {% if backups %}
   <div class="timeline">
     {% for b in backups %}
     <div class="tl-item">
       <div class="tl-spine">
-        <div class="tl-dot {% if loop.first %}first{% endif %}"></div>
+        <div class="tl-dot {% if loop.first %}latest{% elif b.status == 'ok' %}ok{% else %}error{% endif %}"></div>
         <div class="tl-line"></div>
       </div>
-      <div class="tl-card">
+      <div class="tl-card {% if loop.first %}latest{% endif %}">
         <div class="tl-top">
           <div>
             <div class="tl-filename">
               {{ b.filename }}
-              {% if loop.first %}<span class="latest-badge" style="margin-left:8px">latest</span>{% endif %}
+              {% if loop.first %}<span class="latest-tag">latest</span>{% endif %}
             </div>
             <div class="tl-time">{{ b.backed_up_at[:19].replace('T',' ') }} UTC</div>
           </div>
           <div class="tl-right">
-            <span class="badge badge-{{ b.status }}">{{ '✓' if b.status == 'ok' else '✗' }}</span>
+            <span class="badge badge-{{ b.status }}">{{ 'ok' if b.status == 'ok' else 'err' }}</span>
             {% if b.status == 'ok' %}<a class="restore-btn" href="/restore/{{ b.id }}">↓ restore</a>{% endif %}
           </div>
         </div>
 
         {% if b.bpm or b.track_count or b.plugins_list or b.diff or b.size_bytes %}
         <div class="meta-row">
-          {% if b.bpm %}<span class="meta-pill bpm">{{ b.bpm }} BPM</span>{% endif %}
-          {% if b.key %}<span class="meta-pill bpm">{{ b.key }}</span>{% endif %}
-          {% if b.track_count %}<span class="meta-pill track">{{ b.track_count }} tracks</span>{% endif %}
-          {% if b.size_bytes %}<span class="meta-pill size">{{ (b.size_bytes / 1024)|round(1) }} KB</span>{% endif %}
-          {% for plugin in b.plugins_list[:6] %}<span class="meta-pill plugin">{{ plugin }}</span>{% endfor %}
-          {% if b.plugins_list|length > 6 %}<span class="meta-pill plugin">+{{ b.plugins_list|length - 6 }} more</span>{% endif %}
+          {% if b.bpm %}<span class="pill pill-bpm">{{ b.bpm }} BPM</span>{% endif %}
+          {% if b.key %}<span class="pill pill-bpm">{{ b.key }}</span>{% endif %}
+          {% if b.track_count %}<span class="pill pill-track">{{ b.track_count }} tracks</span>{% endif %}
+          {% if b.size_bytes %}<span class="pill pill-size">{{ (b.size_bytes / 1024)|round(1) }} KB</span>{% endif %}
+          {% for plugin in b.plugins_list[:6] %}<span class="pill pill-plug">{{ plugin }}</span>{% endfor %}
+          {% if b.plugins_list|length > 6 %}<span class="pill pill-plug">+{{ b.plugins_list|length - 6 }} more</span>{% endif %}
           {% for d in b.diff %}
-            <span class="meta-pill {% if '+' in d %}diff-add{% else %}diff-chg{% endif %}">{{ d }}</span>
+            <span class="pill {% if '+' in d %}pill-add{% else %}pill-chg{% endif %}">{{ d }}</span>
           {% endfor %}
         </div>
         {% endif %}
@@ -156,6 +173,11 @@
   {% else %}
   <div class="empty">No versions found for this project.</div>
   {% endif %}
+</div>
+
+<div class="activity-bar">
+  <span>ProducerVault v1.0</span>
+  <span>Your files. Your bucket. Always.</span>
 </div>
 
 </body>
