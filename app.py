@@ -49,13 +49,15 @@ def init_db():
                 notes        TEXT
             )
         """)
-        # Migrate: add metadata columns if upgrading from v1
+        # Migrate: add any missing columns (safe on fresh or upgraded DBs)
         for col, typedef in [
-            ('bpm',         'REAL'),
-            ('track_count', 'INTEGER'),
-            ('key',         'TEXT'),
-            ('plugins',     'TEXT'),
-            ('notes',       'TEXT'),
+            ('b2_path',      "TEXT NOT NULL DEFAULT ''"),
+            ('project_name', 'TEXT'),
+            ('bpm',          'REAL'),
+            ('track_count',  'INTEGER'),
+            ('key',          'TEXT'),
+            ('plugins',      'TEXT'),
+            ('notes',        'TEXT'),
         ]:
             try:
                 conn.execute(f"ALTER TABLE backups ADD COLUMN {col} {typedef}")
@@ -272,17 +274,114 @@ def start_watcher():
 
 def _format_backup(row):
     d = dict(row)
+    # Defensive defaults for rows created before schema migrations
+    d.setdefault('project_name', None)
+    d.setdefault('b2_path', '')
+    d.setdefault('bpm', None)
+    d.setdefault('track_count', None)
+    d.setdefault('key', None)
+    d.setdefault('plugins', None)
     try:
         d['plugins_list'] = json.loads(d.get('plugins') or '[]')
     except Exception:
         d['plugins_list'] = []
     return d
 
+
+def _compute_diff(current, previous):
+    """
+    Compare two backup dicts and return a list of human-readable diff strings.
+    e.g. ["BPM 120 → 128", "+2 tracks", "+Serum", "-Massive"]
+    """
+    if not previous:
+        return []
+    diffs = []
+
+    # BPM change
+    try:
+        bpm_a = previous.get('bpm')
+        bpm_b = current.get('bpm')
+        if bpm_a and bpm_b and bpm_a != bpm_b:
+            diffs.append(f"BPM {bpm_a} → {bpm_b}")
+    except Exception:
+        pass
+
+    # Key change
+    try:
+        key_a = previous.get('key')
+        key_b = current.get('key')
+        if key_a and key_b and key_a != key_b:
+            diffs.append(f"key {key_a} → {key_b}")
+        elif not key_a and key_b:
+            diffs.append(f"key set: {key_b}")
+    except Exception:
+        pass
+
+    # Track count change
+    try:
+        tc_a = previous.get('track_count') or 0
+        tc_b = current.get('track_count') or 0
+        delta = tc_b - tc_a
+        if delta > 0:
+            diffs.append(f"+{delta} track{'s' if delta != 1 else ''}")
+        elif delta < 0:
+            diffs.append(f"{delta} track{'s' if abs(delta) != 1 else ''}")
+    except Exception:
+        pass
+
+    # Plugin changes
+    try:
+        plugins_a = set(previous.get('plugins_list') or [])
+        plugins_b = set(current.get('plugins_list') or [])
+        added   = plugins_b - plugins_a
+        removed = plugins_a - plugins_b
+        for p in sorted(added)[:3]:
+            diffs.append(f"+{p}")
+        for p in sorted(removed)[:3]:
+            diffs.append(f"−{p}")
+    except Exception:
+        pass
+
+    return diffs
+
+
+def _attach_diffs(backups):
+    """
+    For each backup, compute diff vs the previous version of the same file.
+    Mutates in place, adds 'diff' key.
+    """
+    # Group by (project_name, filename) → ordered list newest-first
+    # We need oldest-first to compute forward diffs, then reverse
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for b in backups:
+        groups[(b['project_name'], b['filename'])].append(b)
+
+    # Within each group (already newest-first), previous = index+1
+    for b_list in groups.values():
+        for i, b in enumerate(b_list):
+            prev = b_list[i + 1] if i + 1 < len(b_list) else None
+            b['diff'] = _compute_diff(b, prev)
+
+    return backups
+
+
+@app.route("/landing")
+def landing():
+    return render_template("landing.html")
+
+@app.route("/dashboard")
+def dashboard():
+    return index_view()
+
 @app.route("/")
 def index():
+    return index_view()
+
+def index_view():
     with get_db() as conn:
         raw      = conn.execute("SELECT * FROM backups ORDER BY backed_up_at DESC LIMIT 100").fetchall()
-        backups  = [_format_backup(r) for r in raw]
+        backups  = _attach_diffs([_format_backup(r) for r in raw])
         total    = conn.execute("SELECT COUNT(*) FROM backups WHERE status='ok'").fetchone()[0]
         errors   = conn.execute("SELECT COUNT(*) FROM backups WHERE status='error'").fetchone()[0]
         projects = conn.execute(
@@ -299,22 +398,40 @@ def index():
                            total_size=humanize.naturalsize(size_sum),
                            watch_folder=WATCH_FOLDER)
 
+
+@app.route("/project/<name>")
+def project_view(name):
+    with get_db() as conn:
+        raw = conn.execute(
+            "SELECT * FROM backups WHERE project_name=? ORDER BY backed_up_at DESC",
+            (name,)
+        ).fetchall()
+        backups = _attach_diffs([_format_backup(r) for r in raw])
+        size_sum = conn.execute(
+            "SELECT SUM(size_bytes) FROM backups WHERE project_name=? AND status='ok'", (name,)
+        ).fetchone()[0] or 0
+    return render_template("project.html",
+                           name=name,
+                           backups=backups,
+                           total_size=humanize.naturalsize(size_sum))
+
+
 @app.route("/api/backups")
 def api_backups():
     with get_db() as conn:
-        rows = [_format_backup(r) for r in conn.execute(
+        rows = _attach_diffs([_format_backup(r) for r in conn.execute(
             "SELECT * FROM backups ORDER BY backed_up_at DESC LIMIT 100"
-        ).fetchall()]
+        ).fetchall()])
     return jsonify(rows)
+
 
 @app.route("/api/project/<name>")
 def api_project(name):
-    """All versions of a specific project — for version history view."""
     with get_db() as conn:
-        rows = [_format_backup(r) for r in conn.execute(
+        rows = _attach_diffs([_format_backup(r) for r in conn.execute(
             "SELECT * FROM backups WHERE project_name=? AND status='ok' ORDER BY backed_up_at DESC",
             (name,)
-        ).fetchall()]
+        ).fetchall()])
     return jsonify(rows)
 
 @app.route("/restore/<int:backup_id>")

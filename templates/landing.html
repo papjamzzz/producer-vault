@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProducerVault — Never Lose a Session Again</title>
+<style>
+  :root {
+    --bg:      #08090d;
+    --surface: #0d0f1a;
+    --border:  #1e2235;
+    --text:    #e2e8f0;
+    --dim:     #5a6080;
+    --accent:  #7c3aed;
+    --accent2: #a855f7;
+    --green:   #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; }
+  a { color: inherit; text-decoration: none; }
+
+  /* NAV */
+  nav {
+    padding: 20px 60px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo { font-size: 18px; font-weight: 700; }
+  .nav-logo span { color: var(--accent2); }
+  .nav-cta {
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+    padding: 8px 20px; border-radius: 8px; transition: background 0.15s; font-family: inherit;
+  }
+  .nav-cta:hover { background: var(--accent2); }
+
+  /* HERO */
+  .hero {
+    max-width: 760px; margin: 0 auto; padding: 100px 40px 80px;
+    text-align: center;
+  }
+  .hero-tag {
+    display: inline-block; background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25);
+    color: var(--accent2); font-size: 11px; font-weight: 600; padding: 4px 14px;
+    border-radius: 999px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 28px;
+  }
+  .hero h1 { font-size: 52px; font-weight: 700; line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 20px; }
+  .hero h1 span { color: var(--accent2); }
+  .hero p { font-size: 18px; color: var(--dim); line-height: 1.7; max-width: 560px; margin: 0 auto 40px; font-family: -apple-system, sans-serif; }
+
+  .hero-actions { display: flex; gap: 14px; justify-content: center; align-items: center; }
+  .btn-primary {
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 700;
+    padding: 14px 32px; border-radius: 10px; transition: background 0.15s;
+    font-family: inherit;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary {
+    color: var(--dim); font-size: 13px; font-family: inherit;
+    padding: 14px 20px; border-radius: 10px; border: 1px solid var(--border);
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--text); }
+
+  .hero-sub { margin-top: 20px; font-size: 12px; color: var(--dim); }
+
+  /* PROBLEM */
+  .problem {
+    background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 60px 60px;
+  }
+  .problem-inner { max-width: 800px; margin: 0 auto; }
+  .problem-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--dim); margin-bottom: 20px; }
+  .problem h2 { font-size: 28px; font-weight: 700; line-height: 1.4; margin-bottom: 16px; }
+  .problem p { color: var(--dim); font-size: 15px; line-height: 1.8; font-family: -apple-system, sans-serif; }
+  .problem p strong { color: var(--text); }
+
+  /* FEATURES */
+  .features { padding: 80px 60px; max-width: 1000px; margin: 0 auto; }
+  .features-title { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--dim); margin-bottom: 40px; text-align: center; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+  }
+  .feature-icon { font-size: 24px; margin-bottom: 14px; }
+  .feature-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .feature-desc { font-size: 13px; color: var(--dim); line-height: 1.6; font-family: -apple-system, sans-serif; }
+
+  /* DEMO */
+  .demo {
+    padding: 0 60px 80px; max-width: 1000px; margin: 0 auto;
+  }
+  .demo-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--dim); margin-bottom: 20px; text-align: center; }
+  .demo-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden;
+  }
+  .demo-header {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .demo-title { font-size: 12px; color: var(--dim); margin-left: 6px; }
+  .demo-row {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .demo-row:last-child { border-bottom: none; }
+  .demo-left { display: flex; flex-direction: column; gap: 4px; }
+  .demo-filename { font-size: 13px; font-weight: 600; }
+  .demo-time { font-size: 11px; color: var(--dim); }
+  .demo-pills { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .pill { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  .pill-bpm   { background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.2);  color: #4ade80; }
+  .pill-track { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); color: #fbbf24; }
+  .pill-plug  { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.2); color: var(--accent2); }
+  .pill-diff  { background: rgba(34,197,94,0.1);   border: 1px solid rgba(34,197,94,0.3);  color: var(--green); }
+  .pill-chg   { background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.3); color: #fbbf24; }
+  .pill-ok    { background: rgba(34,197,94,0.1);   border: 1px solid rgba(34,197,94,0.2);  color: var(--green); }
+  .restore-btn {
+    background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
+    color: var(--accent2); font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 6px; font-family: inherit;
+  }
+
+  /* PRICING */
+  .pricing {
+    background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 80px 60px;
+  }
+  .pricing-inner { max-width: 640px; margin: 0 auto; text-align: center; }
+  .pricing h2 { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
+  .pricing-sub { color: var(--dim); font-size: 15px; margin-bottom: 48px; font-family: -apple-system, sans-serif; }
+
+  .pricing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+  .pricing-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px 24px; text-align: left;
+  }
+  .pricing-card.featured { border-color: var(--accent2); }
+  .pricing-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--dim); margin-bottom: 12px; }
+  .pricing-price { font-size: 36px; font-weight: 700; margin-bottom: 4px; }
+  .pricing-price span { font-size: 14px; color: var(--dim); font-weight: 400; }
+  .pricing-save { font-size: 11px; color: var(--green); margin-bottom: 20px; }
+  .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .pricing-features li { font-size: 13px; color: var(--dim); font-family: -apple-system, sans-serif; }
+  .pricing-features li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+
+  .pricing-note { font-size: 12px; color: var(--dim); }
+
+  /* FOOTER */
+  footer {
+    padding: 40px 60px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .footer-logo { font-size: 15px; font-weight: 700; }
+  .footer-logo span { color: var(--accent2); }
+  .footer-note { font-size: 12px; color: var(--dim); }
+
+  @media (max-width: 700px) {
+    nav { padding: 16px 24px; }
+    .hero { padding: 60px 24px 60px; }
+    .hero h1 { font-size: 34px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .pricing-cards { grid-template-columns: 1fr; }
+    .problem, .features, .demo, .pricing, footer { padding-left: 24px; padding-right: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Producer<span>Vault</span></div>
+  <a href="#pricing" class="nav-cta">Get Started</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">For Ableton Producers</div>
+  <h1>Never lose a session <span>again.</span></h1>
+  <p>ProducerVault watches your Ableton folder and backs up every save to the cloud — automatically. No clicks. No thinking about it. Just open Ableton and work.</p>
+  <div class="hero-actions">
+    <a href="#pricing" class="btn-primary">Start for $3/month</a>
+    <a href="/dashboard" class="btn-secondary">View Dashboard →</a>
+  </div>
+  <div class="hero-sub">10GB free · No credit card to start · Cancel any time</div>
+</div>
+
+<!-- PROBLEM -->
+<div class="problem">
+  <div class="problem-inner">
+    <div class="problem-label">The reality</div>
+    <h2>You've already lost something.</h2>
+    <p>
+      A crash at 3am. A corrupted file. An external drive that wasn't plugged in. You know the feeling —
+      <strong>hours of work, gone.</strong> Ableton's built-in backup only saves locally.
+      Dropbox doesn't know what an <code>.als</code> file is.
+      External drives require you to remember.
+      <strong>None of it is automatic. None of it is enough.</strong>
+    </p>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features">
+  <div class="features-title">What ProducerVault does</div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Instant on save</div>
+      <div class="feature-desc">Detects every .als, .wav, and audio file change the moment you save. Upload happens in the background. You never touch it.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <div class="feature-title">Understands your sessions</div>
+      <div class="feature-desc">Reads your .als files and extracts BPM, key, track count, and plugins for every version. Not just "backed up" — actually knows what's in it.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⏪</div>
+      <div class="feature-title">Restore any version</div>
+      <div class="feature-desc">Every save is a version. Go back to how your track sounded last Tuesday, last week, before you made that change you now regret.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📂</div>
+      <div class="feature-title">Full project backup</div>
+      <div class="feature-desc">Watches your entire Ableton folder — project files, recorded audio, samples. The whole session, not just the .als.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">☁️</div>
+      <div class="feature-title">Real cloud storage</div>
+      <div class="feature-desc">Backed by Backblaze B2 — reliable, affordable, not your laptop, not a drive in the same room as your computer.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <div class="feature-title">Your files, your bucket</div>
+      <div class="feature-desc">Your files go to your own B2 bucket. Nobody else can see them. No shared infrastructure. Private by design.</div>
+    </div>
+  </div>
+</div>
+
+<!-- DEMO -->
+<div class="demo">
+  <div class="demo-label">What it looks like</div>
+  <div class="demo-card">
+    <div class="demo-header">
+      <div class="demo-dot" style="background:#ef4444"></div>
+      <div class="demo-dot" style="background:#f59e0b"></div>
+      <div class="demo-dot" style="background:#22c55e"></div>
+      <div class="demo-title">ProducerVault — Version History</div>
+    </div>
+    <div class="demo-row">
+      <div class="demo-left">
+        <div class="demo-filename">midnight_session.als</div>
+        <div class="demo-time">2026-04-17 03:14:22 UTC · 1.2 MB</div>
+        <div class="demo-pills">
+          <span class="pill pill-bpm">128 BPM</span>
+          <span class="pill pill-bpm">F# Minor</span>
+          <span class="pill pill-track">14 tracks</span>
+          <span class="pill pill-plug">Serum</span>
+          <span class="pill pill-plug">Massive</span>
+          <span class="pill pill-diff">+2 tracks</span>
+          <span class="pill pill-chg">BPM 124 → 128</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-ok">✓ saved</span>
+        <span class="restore-btn">↓ restore</span>
+      </div>
+    </div>
+    <div class="demo-row">
+      <div class="demo-left">
+        <div class="demo-filename">midnight_session.als</div>
+        <div class="demo-time">2026-04-17 01:52:08 UTC · 980 KB</div>
+        <div class="demo-pills">
+          <span class="pill pill-bpm">124 BPM</span>
+          <span class="pill pill-bpm">F# Minor</span>
+          <span class="pill pill-track">12 tracks</span>
+          <span class="pill pill-plug">Serum</span>
+          <span class="pill pill-plug">Massive</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-ok">✓ saved</span>
+        <span class="restore-btn">↓ restore</span>
+      </div>
+    </div>
+    <div class="demo-row">
+      <div class="demo-left">
+        <div class="demo-filename">midnight_session.als</div>
+        <div class="demo-time">2026-04-16 23:30:45 UTC · 620 KB</div>
+        <div class="demo-pills">
+          <span class="pill pill-bpm">124 BPM</span>
+          <span class="pill pill-track">8 tracks</span>
+          <span class="pill pill-plug">Serum</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill pill-ok">✓ saved</span>
+        <span class="restore-btn">↓ restore</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <h2>Simple pricing.</h2>
+    <p class="pricing-sub">Less than a coffee. Cancel any time. No BS.</p>
+    <div class="pricing-cards">
+      <div class="pricing-card">
+        <div class="pricing-label">Monthly</div>
+        <div class="pricing-price">$3<span>/month</span></div>
+        <div class="pricing-save">&nbsp;</div>
+        <ul class="pricing-features">
+          <li>Unlimited backups</li>
+          <li>Full version history</li>
+          <li>.als metadata parsing</li>
+          <li>One-click restore</li>
+          <li>Your own B2 bucket</li>
+        </ul>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-label">Yearly</div>
+        <div class="pricing-price">$25<span>/year</span></div>
+        <div class="pricing-save">Save $11 vs monthly</div>
+        <ul class="pricing-features">
+          <li>Everything in monthly</li>
+          <li>Priority support</li>
+          <li>Early access to features</li>
+          <li>Lock in the price forever</li>
+          <li>Best value</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pricing-note">
+      Storage costs billed separately through your own Backblaze B2 account.<br>
+      10GB free included — most producers never exceed it.
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">Producer<span>Vault</span></div>
+  <div class="footer-note">Built by a producer, for producers.</div>
+</footer>
+
+</body>
+</html>

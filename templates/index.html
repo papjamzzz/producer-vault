@@ -21,8 +21,7 @@
   body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; min-height: 100vh; }
 
   header {
-    padding: 24px 40px;
-    border-bottom: 1px solid var(--border);
+    padding: 24px 40px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
   }
   .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
@@ -35,15 +34,8 @@
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  /* Stats */
-  .stats {
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 12px; padding: 28px 40px 0;
-  }
-  .stat {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 20px 22px;
-  }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 28px 40px 0; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; }
   .stat-num { font-size: 30px; font-weight: 700; color: var(--accent2); line-height: 1; }
   .stat-num.green { color: var(--green); }
   .stat-num.red   { color: var(--red); }
@@ -53,62 +45,42 @@
   .section { padding: 28px 40px; }
   .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--dim); margin-bottom: 12px; }
 
-  .watch-path {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px 16px; font-size: 12px; color: var(--accent2);
-  }
+  .watch-path { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 12px; color: var(--accent2); }
   .watch-path span { color: var(--dim); margin-right: 6px; }
 
-  /* Projects */
   .projects { display: flex; gap: 10px; flex-wrap: wrap; }
   .project-chip {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 8px; padding: 10px 14px; font-size: 12px;
-    cursor: pointer; transition: border-color 0.15s;
+    text-decoration: none; transition: border-color 0.15s;
   }
   .project-chip:hover { border-color: var(--accent2); }
   .project-chip-name { color: var(--accent2); font-weight: 600; }
   .project-chip-meta { color: var(--dim); font-size: 11px; margin-top: 3px; }
 
-  /* Backup rows */
   .backup-list { display: flex; flex-direction: column; gap: 6px; }
-
   .backup-row {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 14px 16px;
-    transition: border-color 0.15s;
+    border-radius: 10px; padding: 14px 16px; transition: border-color 0.15s;
   }
   .backup-row:hover { border-color: var(--accent); }
 
-  .backup-top {
-    display: flex; align-items: center; justify-content: space-between;
-  }
+  .backup-top { display: flex; align-items: center; justify-content: space-between; }
   .backup-left { display: flex; flex-direction: column; gap: 2px; }
   .backup-name { font-size: 13px; font-weight: 600; }
   .backup-project { font-size: 11px; color: var(--accent2); }
   .backup-time { font-size: 11px; color: var(--dim); margin-top: 2px; }
-
   .backup-right { display: flex; align-items: center; gap: 8px; }
 
-  /* Metadata pills */
-  .meta-row {
-    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;
-    padding-top: 10px; border-top: 1px solid var(--border);
-  }
-  .meta-pill {
-    background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2);
-    color: var(--accent2); font-size: 10px; font-weight: 600;
-    padding: 2px 8px; border-radius: 999px;
-  }
-  .meta-pill.bpm   { background: rgba(34,197,94,0.08);  border-color: rgba(34,197,94,0.2);  color: #4ade80; }
-  .meta-pill.track { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.2); color: #fbbf24; }
-  .meta-pill.plugin{ background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.2); color: var(--accent2); }
+  .meta-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .meta-pill { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  .meta-pill.bpm    { background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.2);  color: #4ade80; }
+  .meta-pill.track  { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); color: #fbbf24; }
+  .meta-pill.plugin { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.2); color: var(--accent2); }
+  .meta-pill.diff-add { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); }
+  .meta-pill.diff-chg { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); color: #fbbf24; }
 
-  /* Badges + buttons */
-  .badge {
-    padding: 2px 9px; border-radius: 999px; font-size: 10px;
-    font-weight: 600; white-space: nowrap;
-  }
+  .badge { padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 600; white-space: nowrap; }
   .badge-ok    { background: rgba(34,197,94,0.1);  color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
   .badge-error { background: rgba(239,68,68,0.1);  color: var(--red);   border: 1px solid rgba(239,68,68,0.2); }
 
@@ -119,11 +91,7 @@
     text-decoration: none; transition: background 0.15s; font-family: inherit;
   }
   .restore-btn:hover { background: rgba(124,58,237,0.3); }
-
   .empty { color: var(--dim); font-size: 13px; padding: 40px 0; text-align: center; }
-
-  /* Version diff flash */
-  .changed { color: var(--green); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -134,22 +102,10 @@
 </header>
 
 <div class="stats">
-  <div class="stat">
-    <div class="stat-num green">{{ total }}</div>
-    <div class="stat-label">Backed Up</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num {% if errors > 0 %}red{% endif %}">{{ errors }}</div>
-    <div class="stat-label">Errors</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">{{ projects|length }}</div>
-    <div class="stat-label">Projects</div>
-  </div>
-  <div class="stat">
-    <div class="stat-num small">{{ total_size }}</div>
-    <div class="stat-label">Cloud Storage Used</div>
-  </div>
+  <div class="stat"><div class="stat-num green">{{ total }}</div><div class="stat-label">Backed Up</div></div>
+  <div class="stat"><div class="stat-num {% if errors > 0 %}red{% endif %}">{{ errors }}</div><div class="stat-label">Errors</div></div>
+  <div class="stat"><div class="stat-num">{{ projects|length }}</div><div class="stat-label">Projects</div></div>
+  <div class="stat"><div class="stat-num small">{{ total_size }}</div><div class="stat-label">Cloud Storage</div></div>
 </div>
 
 <div class="section">
@@ -162,61 +118,45 @@
   <div class="section-title">Projects</div>
   <div class="projects">
     {% for p in projects %}
-    <div class="project-chip">
+    <a href="/project/{{ p.project_name }}" class="project-chip">
       <div class="project-chip-name">{{ p.project_name }}</div>
       <div class="project-chip-meta">{{ p.cnt }} version{{ 's' if p.cnt != 1 }} · {{ p.last_backup[:10] }}</div>
-    </div>
+    </a>
     {% endfor %}
   </div>
 </div>
 {% endif %}
 
 <div class="section" style="padding-top:0">
-  <div class="section-title">Version History</div>
+  <div class="section-title">Recent Activity</div>
   <div class="backup-list">
     {% if backups %}
       {% for b in backups %}
       <div class="backup-row">
-
         <div class="backup-top">
           <div class="backup-left">
             <div class="backup-name">{{ b.filename }}</div>
             <div class="backup-project">{{ b.project_name or '—' }}</div>
-            <div class="backup-time">
-              {{ b.backed_up_at[:19].replace('T',' ') }} UTC
-              &nbsp;·&nbsp;
-              {% if b.size_bytes %}{{ (b.size_bytes / 1024)|round(1) }} KB{% else %}—{% endif %}
-            </div>
+            <div class="backup-time">{{ b.backed_up_at[:19].replace('T',' ') }} UTC &nbsp;·&nbsp; {% if b.size_bytes %}{{ (b.size_bytes / 1024)|round(1) }} KB{% else %}—{% endif %}</div>
           </div>
           <div class="backup-right">
             <span class="badge badge-{{ b.status }}">{{ '✓ saved' if b.status == 'ok' else '✗ error' }}</span>
-            {% if b.status == 'ok' %}
-            <a class="restore-btn" href="/restore/{{ b.id }}">↓ restore</a>
-            {% endif %}
+            {% if b.status == 'ok' %}<a class="restore-btn" href="/restore/{{ b.id }}">↓ restore</a>{% endif %}
           </div>
         </div>
 
-        {# Metadata row — only for .als files with parsed data #}
-        {% if b.bpm or b.track_count or b.plugins_list %}
+        {% if b.bpm or b.track_count or b.plugins_list or b.diff %}
         <div class="meta-row">
-          {% if b.bpm %}
-          <span class="meta-pill bpm">{{ b.bpm }} BPM</span>
-          {% endif %}
-          {% if b.key %}
-          <span class="meta-pill bpm">{{ b.key }}</span>
-          {% endif %}
-          {% if b.track_count %}
-          <span class="meta-pill track">{{ b.track_count }} track{{ 's' if b.track_count != 1 }}</span>
-          {% endif %}
-          {% for plugin in b.plugins_list[:8] %}
-          <span class="meta-pill plugin">{{ plugin }}</span>
+          {% if b.bpm %}<span class="meta-pill bpm">{{ b.bpm }} BPM</span>{% endif %}
+          {% if b.key %}<span class="meta-pill bpm">{{ b.key }}</span>{% endif %}
+          {% if b.track_count %}<span class="meta-pill track">{{ b.track_count }} track{{ 's' if b.track_count != 1 }}</span>{% endif %}
+          {% for plugin in b.plugins_list[:5] %}<span class="meta-pill plugin">{{ plugin }}</span>{% endfor %}
+          {% if b.plugins_list|length > 5 %}<span class="meta-pill plugin">+{{ b.plugins_list|length - 5 }} more</span>{% endif %}
+          {% for d in b.diff %}
+            <span class="meta-pill {% if '+' in d %}diff-add{% else %}diff-chg{% endif %}">{{ d }}</span>
           {% endfor %}
-          {% if b.plugins_list|length > 8 %}
-          <span class="meta-pill plugin">+{{ b.plugins_list|length - 8 }} more</span>
-          {% endif %}
         </div>
         {% endif %}
-
       </div>
       {% endfor %}
     {% else %}
@@ -228,16 +168,10 @@
 <script>
   let lastCount = {{ backups|length }};
   setInterval(() => {
-    fetch('/api/backups')
-      .then(r => r.json())
-      .then(data => {
-        if (data.length !== lastCount) {
-          lastCount = data.length;
-          location.reload();
-        }
-      });
+    fetch('/api/backups').then(r => r.json()).then(data => {
+      if (data.length !== lastCount) { lastCount = data.length; location.reload(); }
+    });
   }, 10000);
 </script>
-
 </body>
 </html>
