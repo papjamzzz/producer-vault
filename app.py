@@ -20,7 +20,8 @@ app = Flask(__name__)
 DB  = os.path.join(os.path.dirname(__file__), 'data', 'vault.db')
 
 WATCH_FOLDER = os.getenv('WATCH_FOLDER', os.path.expanduser('~/Music/Ableton'))
-WATCH_EXTS   = {'.als', '.alc', '.adg', '.asd', '.wav', '.aif', '.aiff', '.flac'}
+WATCH_EXTS   = {'.als', '.alc', '.adg', '.wav', '.aif', '.aiff', '.flac'}
+# .asd excluded — Ableton's waveform analysis cache, temp file, not a session asset
 DEBOUNCE_SEC = 3.0
 
 # ── Database ──────────────────────────────────────────────────────────────────
@@ -194,14 +195,24 @@ def _do_backup(path):
     if not os.path.exists(path):
         return
 
-    ext          = os.path.splitext(path)[1].lower()
-    size         = os.path.getsize(path)
-    timestamp    = datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%S")
-    rel          = os.path.relpath(path, WATCH_FOLDER)
-    parts        = rel.split(os.sep)
-    project_name = parts[0] if len(parts) > 1 else "root"
-    filename     = os.path.basename(path)
-    b2_path      = f"{project_name}/{timestamp}/{filename}"
+    ext       = os.path.splitext(path)[1].lower()
+    size      = os.path.getsize(path)
+    timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%S")
+    rel       = os.path.relpath(path, WATCH_FOLDER)
+    parts     = rel.split(os.sep)
+    filename  = os.path.basename(path)
+
+    # Find the real project name — skip generic Ableton folder names,
+    # strip " Project" suffix Ableton appends automatically
+    GENERIC = {'projects', 'factory packs', 'live recordings', 'packs-downloaded',
+               'plugins-downloaded', 'samples', 'recorded', 'backup'}
+    project_name = 'root'
+    for part in parts[:-1]:
+        if part.lower() not in GENERIC:
+            project_name = part.removesuffix(' Project').removesuffix(' project').strip()
+            break
+
+    b2_path = f"{project_name}/{timestamp}/{filename}"
 
     # Parse .als metadata before uploading
     meta = {'bpm': None, 'track_count': None, 'plugins': []}
