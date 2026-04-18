@@ -896,6 +896,18 @@ def admin_issue_license():
 
 @app.route("/api/diagnostics", methods=["POST"])
 def api_diagnostics():
+    # Diagnostics must run on the local machine — not useful on a remote server
+    host = request.host.split(':')[0]
+    is_local = host in ('127.0.0.1', 'localhost', '0.0.0.0')
+    if not is_local:
+        return jsonify([{
+            "code": "DD-LOCAL-001",
+            "sev": "info",
+            "title": "Run DAW Doctor Locally for Diagnostics",
+            "cause": "System diagnostics scan your Mac's CPU, RAM, Ableton process, and audio interface. This only works when DAW Doctor is running on your machine.",
+            "value": "Remote",
+            "fix": "Open http://127.0.0.1:5565 in your browser to run a real scan on your system."
+        }])
     results = []
     for fn in [check_ableton, check_cpu, check_memory, check_audio, check_system]:
         results.extend(fn())
