@@ -9,7 +9,7 @@ from datetime import datetime
 from xml.etree import ElementTree as ET
 from flask import Flask, render_template, jsonify, send_file, abort
 from dotenv import load_dotenv
-from watchdog.observers import Observer
+from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
 import humanize
 import tempfile
