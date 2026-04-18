@@ -57,6 +57,10 @@ Renamed to DAW Doctor 2026-04-18. Core backup + versioning live. UI redesigned.
 - [ ] Track Monitor tab (port TrackTracks UDP data to web)
 - [ ] Submit to Ableton community / Reddit
 
+## URLs
+- Live: https://dawdoctor.creativekonsoles.com
+- Railway: https://web-production-af6eb.up.railway.app
+
 ## GitHub
 https://github.com/papjamzzz/producer-vault (repo name stays, product name is DAW Doctor)
 

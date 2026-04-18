@@ -4,11 +4,13 @@ Never lose a session again.
 Port 5565
 """
 
-import os, sqlite3, threading, time, gzip, json, hashlib, uuid, smtplib
+import os, sqlite3, threading, time, gzip, json, hashlib, uuid, smtplib, socket, glob, subprocess
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from xml.etree import ElementTree as ET
+import psutil
+import xml.etree.ElementTree as ET
 from flask import Flask, render_template, jsonify, send_file, abort, request, Response
 from dotenv import load_dotenv
 from watchdog.observers.polling import PollingObserver as Observer
@@ -411,6 +413,226 @@ def start_watcher():
     observer.join()
 
 
+# ── Diagnostics ───────────────────────────────────────────────────────────────
+
+def _sh(cmd, timeout=10):
+    try:
+        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+        return r.stdout.strip()
+    except Exception:
+        return ""
+
+def check_cpu():
+    out = []
+    cpu_pct = psutil.cpu_percent(interval=0.8)
+    cores   = psutil.cpu_percent(percpu=True)
+    maxed   = sum(1 for c in cores if c > 90)
+    if cpu_pct >= 90:
+        out.append({"code":"AB-CPU-001","sev":"crit","title":"CPU Overloaded","cause":f"System at {cpu_pct:.0f}%  ·  {maxed}/{len(cores)} cores above 90%","value":f"{cpu_pct:.0f}%","fix":"Increase buffer to 1024+ · Freeze ALL tracks · Kill all other apps NOW"})
+    elif cpu_pct >= 72:
+        out.append({"code":"AB-CPU-001","sev":"warn","title":"High CPU Load","cause":f"System at {cpu_pct:.0f}%  ·  {maxed}/{len(cores)} cores above 90%","value":f"{cpu_pct:.0f}%","fix":"Freeze instrument tracks · Increase buffer size · Close browser/Slack"})
+    else:
+        out.append({"code":"AB-CPU-001","sev":"ok","title":"CPU Load Normal","cause":f"System at {cpu_pct:.0f}%","value":f"{cpu_pct:.0f}%","fix":""})
+    SKIP = {"kernel_task","WindowServer","Ableton Live","python3","diagnose.py","coreaudiod","launchd","logd","mds"}
+    hogs = []
+    for p in psutil.process_iter(["name","cpu_percent"]):
+        try:
+            pct  = p.cpu_percent(interval=None)
+            name = (p.info.get("name") or "").strip()
+            if pct and pct > 12 and name and name not in SKIP:
+                hogs.append((name, pct))
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    if hogs:
+        hogs.sort(key=lambda x: x[1], reverse=True)
+        name, pct = hogs[0]
+        out.append({"code":"AB-CPU-003","sev":"crit" if pct > 40 else "warn","title":"Background App Eating CPU","cause":f"'{name}' is using {pct:.0f}% CPU","value":f"{name} @ {pct:.0f}%","fix":f"Quit '{name}' before your session for maximum headroom"})
+    therm = _sh("pmset -g therm 2>/dev/null | grep CPU_Scheduler_Limit | awk '{print $NF}'")
+    if therm and therm.isdigit() and int(therm) < 100:
+        out.append({"code":"AB-CPU-002","sev":"crit","title":"CPU Thermal Throttling!","cause":f"macOS capped CPU speed to {therm}% due to heat","value":f"THROTTLED {therm}%","fix":"Let Mac cool down · Use a cooling stand · Check thermal paste on older Macs"})
+    return out
+
+def check_memory():
+    out = []
+    mem  = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    free  = mem.available / 1024**3
+    total = mem.total     / 1024**3
+    if free < 1.0:
+        out.append({"code":"AB-MEM-001","sev":"crit","title":"Critical Low RAM","cause":f"Only {free:.2f} GB free of {total:.0f} GB","value":f"{free:.2f} GB free","fix":"Freeze ALL tracks · Close every non-essential app · Bounce tracks to audio"})
+    elif free < 2.5:
+        out.append({"code":"AB-MEM-001","sev":"warn","title":"Low Available RAM","cause":f"{free:.1f} GB free of {total:.0f} GB  ({mem.percent:.0f}% used)","value":f"{free:.1f} GB free","fix":"Freeze sample-heavy instruments · Close Chrome, Slack, Zoom"})
+    else:
+        out.append({"code":"AB-MEM-001","sev":"ok","title":"RAM OK","cause":f"{free:.1f} GB free of {total:.0f} GB  ({mem.percent:.0f}% used)","value":f"{free:.1f} GB free","fix":""})
+    sw_gb = swap.used / 1024**3
+    if sw_gb > 1.0:
+        out.append({"code":"AB-MEM-002","sev":"crit","title":"Heavy Swap = Audio Dropouts","cause":f"Swapping {sw_gb:.1f} GB to disk","value":f"{sw_gb:.1f} GB swap","fix":"Close all non-essential apps NOW · Freeze & bounce tracks"})
+    elif sw_gb > 0.2:
+        out.append({"code":"AB-MEM-002","sev":"warn","title":"Swap Activity Detected","cause":f"Using {sw_gb:.2f} GB swap — RAM is tight","value":f"{sw_gb:.2f} GB swap","fix":"Close browser tabs and unused background apps"})
+    return out
+
+def check_ableton():
+    out = []
+    all_procs = list(psutil.process_iter(["name","pid","cpu_percent","memory_info"]))
+    abl = next((p for p in all_procs if "Ableton Live" in (p.info.get("name") or "")), None)
+    if abl is None:
+        out.append({"code":"AB-ABL-001","sev":"info","title":"Ableton Live Not Running","cause":"Ableton Live process not found","value":"NOT RUNNING","fix":"Launch Ableton Live for full process diagnostics"})
+    else:
+        try:
+            cpu = abl.cpu_percent(interval=0.3)
+            mb  = abl.memory_info().rss / 1024**2
+            out.append({"code":"AB-ABL-000","sev":"ok","title":"Ableton Live Detected","cause":f"PID {abl.pid}  ·  CPU: {cpu:.1f}%  ·  RAM: {mb:.0f} MB","value":f"{cpu:.0f}% CPU","fix":""})
+            if cpu > 85:
+                out.append({"code":"AB-ABL-002","sev":"crit","title":"Ableton: Critical CPU Usage","cause":f"Ableton alone at {cpu:.1f}% — expect dropouts","value":f"{cpu:.0f}%","fix":"Increase buffer size · Freeze heavy tracks · Disable unused plugins"})
+            elif cpu > 65:
+                out.append({"code":"AB-ABL-002","sev":"warn","title":"Ableton: High CPU Usage","cause":f"Ableton using {cpu:.1f}% — getting tight","value":f"{cpu:.0f}%","fix":"Consider freezing tracks or bumping buffer size"})
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+    pref_globs = glob.glob(os.path.expanduser("~/Library/Preferences/Ableton/Live */Preferences.cfg"))
+    if pref_globs:
+        pref_path = sorted(pref_globs)[-1]
+        try:
+            tree = ET.parse(pref_path)
+            root = tree.getroot()
+            def xval(tag_name):
+                for el in root.iter():
+                    if el.tag == tag_name:
+                        return el.get("Value")
+                return None
+            buf = xval("BufferSize")
+            sr  = xval("SampleRate")
+            if buf:
+                buf_int = int(float(buf))
+                if buf_int <= 64:
+                    out.append({"code":"AB-ABL-003","sev":"warn","title":"Buffer Size Very Low","cause":f"Set to {buf_int} samples — stresses CPU","value":f"{buf_int} samples","fix":"Increase to 128–256 while producing"})
+                elif buf_int >= 1024:
+                    out.append({"code":"AB-ABL-003","sev":"info","title":"Buffer Size Large (High Latency)","cause":f"Set to {buf_int} samples — high monitor latency","value":f"{buf_int} samples","fix":"Reduce to 128–256 when recording live instruments"})
+                else:
+                    out.append({"code":"AB-ABL-003","sev":"ok","title":"Buffer Size OK","cause":f"Set to {buf_int} samples — balanced","value":f"{buf_int} samples","fix":""})
+            if sr:
+                sr_int = int(float(sr))
+                if sr_int <= 48000:
+                    out.append({"code":"AB-ABL-004","sev":"ok","title":f"Sample Rate: {sr_int:,} Hz","cause":"Standard rate — minimal CPU overhead","value":f"{sr_int:,} Hz","fix":""})
+                else:
+                    out.append({"code":"AB-ABL-004","sev":"warn","title":f"Sample Rate High: {sr_int:,} Hz","cause":"High sample rates multiply CPU load","value":f"{sr_int:,} Hz","fix":"Use 44.1 kHz for music unless you need 96k"})
+        except Exception:
+            pass
+    return out
+
+def check_audio():
+    out = []
+    IFACE_KW = ["focusrite","scarlett","apollo","universal audio","ua ","motu","rme","babyface","fireface","audient","steinberg","presonus","behringer","zoom h","ssl","neve","evo ","volt ","clarett","quantum","arrow","twin","duet","quartet","octet","saffire","tascam","roland ","yamaha ag","id4","id14","id22","id44","mackie","solid state","antelope","lynx","prism","apogee"]
+    audio_json = _sh("system_profiler SPAudioDataType -json", timeout=14)
+    devices = []
+    iface_found = None
+    try:
+        data = json.loads(audio_json)
+        for section in data.get("SPAudioDataType", []):
+            for item in section.get("_items", []):
+                name = item.get("_name","")
+                devices.append(name)
+                if iface_found is None and any(kw in name.lower() for kw in IFACE_KW):
+                    iface_found = name
+    except Exception:
+        pass
+    if iface_found:
+        out.append({"code":"AB-AUD-001","sev":"ok","title":"External Audio Interface Found","cause":f"Detected: {iface_found}","value":iface_found[:28],"fix":""})
+    elif devices:
+        out.append({"code":"AB-AUD-001","sev":"warn","title":"No External Audio Interface","cause":"Using built-in Mac audio — high latency, no headroom","value":"Built-in Audio","fix":"Connect an interface (Focusrite Scarlett, Apollo Solo, Audient EVO, etc.)"})
+    else:
+        out.append({"code":"AB-AUD-001","sev":"info","title":"Could Not Query Audio Devices","cause":"system_profiler returned no data","value":"Unknown","fix":"Check System Settings → Sound"})
+    ca_ok = any(p.info.get("name") == "coreaudiod" for p in psutil.process_iter(["name"]))
+    if not ca_ok:
+        out.append({"code":"AB-AUD-002","sev":"crit","title":"CoreAudio Daemon is DOWN","cause":"coreaudiod is not running — audio system is broken","value":"CRASHED","fix":"Restart your Mac to restore CoreAudio"})
+    else:
+        out.append({"code":"AB-AUD-002","sev":"ok","title":"CoreAudio Running","cause":"coreaudiod is active and healthy","value":"OK","fix":""})
+    return out
+
+def check_system():
+    out = []
+    tm = _sh("tmutil status 2>/dev/null")
+    if '"Running" = 1' in tm or '"Stopping" = 1' in tm:
+        out.append({"code":"AB-SYS-001","sev":"warn","title":"Time Machine Backup Running","cause":"Actively writing to disk — causes I/O spikes","value":"BACKING UP","fix":"Pause Time Machine: System Settings → General → Time Machine → Pause"})
+    else:
+        out.append({"code":"AB-SYS-001","sev":"ok","title":"Time Machine Idle","cause":"No backup in progress","value":"IDLE","fix":""})
+    sp_procs = ["mdworker","mds_stores","mds "]
+    if any(any(sp in (p.info.get("name") or "") for sp in sp_procs) for p in psutil.process_iter(["name"])):
+        out.append({"code":"AB-SYS-002","sev":"warn","title":"Spotlight Indexing Active","cause":"mdworker consuming CPU & I/O","value":"INDEXING","fix":"Add Library to Spotlight Privacy exclusions"})
+    lpm = _sh("pmset -g 2>/dev/null | grep lowpowermode")
+    if lpm.split() and lpm.split()[-1] == "1":
+        out.append({"code":"AB-SYS-003","sev":"crit","title":"Low Power Mode ENABLED","cause":"macOS throttles CPU & memory bandwidth","value":"ON","fix":"System Settings → Battery → uncheck Low Power Mode"})
+    try:
+        batt = psutil.sensors_battery()
+        if batt is not None:
+            if not batt.power_plugged:
+                sev = "crit" if batt.percent < 15 else "warn"
+                out.append({"code":"AB-SYS-004","sev":sev,"title":"Running on Battery (Not Plugged In)","cause":f"macOS throttles CPU on battery  ·  {batt.percent:.0f}% remaining","value":f"BAT {batt.percent:.0f}%","fix":"Plug in your power adapter for maximum performance"})
+            else:
+                out.append({"code":"AB-SYS-004","sev":"ok","title":"AC Power (Plugged In)","cause":"Mac is running on AC — full CPU boost available","value":"AC POWER","fix":""})
+    except Exception:
+        pass
+    bt_state = _sh("defaults read /Library/Preferences/com.apple.Bluetooth ControllerPowerState 2>/dev/null")
+    if bt_state == "1":
+        bt_audio = _sh("system_profiler SPBluetoothDataType 2>/dev/null | grep -i 'connected: yes' | head -5")
+        if bt_audio:
+            out.append({"code":"AB-NET-001","sev":"warn","title":"Bluetooth Audio Device Connected","cause":"BT audio adds latency and can cause dropouts","value":"BT AUDIO ON","fix":"Use wired headphones/monitors during recording & mixing"})
+        else:
+            out.append({"code":"AB-NET-001","sev":"info","title":"Bluetooth Enabled (no audio device)","cause":"BT is on but no audio device connected — low risk","value":"BT ON","fix":"Disable BT if you experience dropouts"})
+    disk  = psutil.disk_usage("/")
+    free  = disk.free  / 1024**3
+    total = disk.total / 1024**3
+    if free < 5:
+        out.append({"code":"AB-DSK-001","sev":"crit","title":"Critically Low Disk Space","cause":f"Only {free:.1f} GB free of {total:.0f} GB","value":f"{free:.1f} GB free","fix":"Delete large files, empty trash"})
+    elif free < 20:
+        out.append({"code":"AB-DSK-001","sev":"warn","title":"Low Disk Space","cause":f"{free:.1f} GB free of {total:.0f} GB — sample streaming may stutter","value":f"{free:.1f} GB free","fix":"Free up at least 20 GB for comfortable audio work"})
+    else:
+        out.append({"code":"AB-DSK-001","sev":"ok","title":"Disk Space OK","cause":f"{free:.1f} GB free of {total:.0f} GB","value":f"{free:.1f} GB","fix":""})
+    try:
+        io1 = psutil.disk_io_counters()
+        time.sleep(0.4)
+        io2 = psutil.disk_io_counters()
+        if io1 and io2:
+            r_mbs = (io2.read_bytes  - io1.read_bytes)  / 0.4 / 1024**2
+            w_mbs = (io2.write_bytes - io1.write_bytes) / 0.4 / 1024**2
+            tot   = r_mbs + w_mbs
+            if tot > 300:
+                out.append({"code":"AB-DSK-002","sev":"warn","title":"Heavy Disk Activity","cause":f"R: {r_mbs:.0f} MB/s  ·  W: {w_mbs:.0f} MB/s","value":f"{tot:.0f} MB/s","fix":"Check if Time Machine, Spotlight, or large file copies are running"})
+    except Exception:
+        pass
+    return out
+
+
+# ── UDP Track Monitor ──────────────────────────────────────────────────────────
+
+_track_data = {"active": False, "tracks": [], "updated_at": 0}
+
+def _udp_listener():
+    """Background thread: listen on UDP 7400 for Ableton Remote Script data."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("0.0.0.0", 7400))
+        sock.settimeout(2.0)
+    except Exception as e:
+        print(f"[UDP] Could not bind port 7400: {e}")
+        return
+    print("[UDP] Track Monitor listening on UDP :7400")
+    while True:
+        try:
+            raw, _ = sock.recvfrom(65535)
+            data = json.loads(raw.decode("utf-8", errors="replace"))
+            _track_data["active"] = True
+            _track_data["tracks"] = data.get("tracks", [])
+            _track_data["updated_at"] = time.time()
+        except socket.timeout:
+            # Mark stale after 5 seconds of no data
+            if _track_data["active"] and time.time() - _track_data["updated_at"] > 5:
+                _track_data["active"] = False
+                _track_data["tracks"] = []
+        except Exception:
+            pass
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 def _format_backup(row):
@@ -672,8 +894,46 @@ def admin_issue_license():
     return jsonify({'license_key': key, 'email': email})
 
 
+@app.route("/api/diagnostics", methods=["POST"])
+def api_diagnostics():
+    results = []
+    for fn in [check_ableton, check_cpu, check_memory, check_audio, check_system]:
+        results.extend(fn())
+    # Sort: crit first, then warn, then info, then ok
+    sev_rank = {"crit": 0, "warn": 1, "info": 2, "ok": 3}
+    results.sort(key=lambda x: sev_rank.get(x.get("sev","ok"), 4))
+    return jsonify(results)
+
+
+@app.route("/api/track-monitor")
+def api_track_monitor():
+    data = dict(_track_data)
+    data.pop("updated_at", None)
+    return jsonify(data)
+
+
+@app.route("/api/logs")
+def api_logs():
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, filename, project_name, backed_up_at, status, size_bytes FROM backups ORDER BY backed_up_at DESC LIMIT 50"
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/settings")
+def api_settings():
+    return jsonify({
+        "watch_folder": WATCH_FOLDER,
+        "b2_bucket": os.getenv("B2_BUCKET_NAME", "ProducersVault"),
+        "watcher_active": os.path.exists(WATCH_FOLDER)
+    })
+
+
 if __name__ == "__main__":
     watcher_thread = threading.Thread(target=start_watcher, daemon=True)
     watcher_thread.start()
+    udp_thread = threading.Thread(target=_udp_listener, daemon=True)
+    udp_thread.start()
     port = int(os.environ.get("PORT", 5565))
     app.run(host="0.0.0.0", port=port, debug=False)

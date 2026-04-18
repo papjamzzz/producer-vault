@@ -4,3 +4,4 @@ watchdog
 b2sdk
 humanize
 stripe
+psutil
