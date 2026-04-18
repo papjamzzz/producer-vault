@@ -4,10 +4,12 @@ Never lose a session again.
 Port 5565
 """
 
-import os, sqlite3, threading, time, gzip, json, hashlib
+import os, sqlite3, threading, time, gzip, json, hashlib, uuid, smtplib
 from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from xml.etree import ElementTree as ET
-from flask import Flask, render_template, jsonify, send_file, abort
+from flask import Flask, render_template, jsonify, send_file, abort, request, Response
 from dotenv import load_dotenv
 from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler
@@ -65,9 +67,111 @@ def init_db():
                 conn.execute(f"ALTER TABLE backups ADD COLUMN {col} {typedef}")
             except Exception:
                 pass
+        # License keys table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS licenses (
+                id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                license_key          TEXT UNIQUE NOT NULL,
+                email                TEXT NOT NULL,
+                stripe_customer_id   TEXT,
+                stripe_subscription_id TEXT,
+                plan                 TEXT DEFAULT 'monthly',
+                status               TEXT DEFAULT 'active',
+                created_at           TEXT NOT NULL
+            )
+        """)
         conn.commit()
 
 init_db()
+
+
+# ── Email ──────────────────────────────────────────────────────────────────────
+
+def send_license_email(to_email, license_key, plan='monthly'):
+    """Send license key to customer via Gmail SMTP."""
+    gmail_user     = os.getenv('GMAIL_USER', 'jeremiahstephensmith@gmail.com')
+    gmail_password = os.getenv('GMAIL_APP_PASSWORD', '')
+    from_name      = 'DAW Doctor'
+    from_email     = os.getenv('FROM_EMAIL', 'jeremiah@creativekonsoles.com')
+
+    price = '$3/month' if plan == 'monthly' else '$25/year'
+
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = 'Your DAW Doctor license key'
+    msg['From']    = f'{from_name} <{from_email}>'
+    msg['To']      = to_email
+
+    text = f"""
+Welcome to DAW Doctor.
+
+Your license key: {license_key}
+
+Add it to your .env file:
+LICENSE_KEY={license_key}
+
+Then restart DAW Doctor and your sessions are protected.
+
+Plan: {price}
+Questions? Reply to this email.
+
+— DAW Doctor
+"""
+    html = f"""
+<div style="font-family:Inter,sans-serif;max-width:520px;margin:40px auto;background:#1a1a1a;border-radius:10px;overflow:hidden;">
+  <div style="background:#e8760a;padding:24px 32px;">
+    <div style="font-size:22px;font-weight:800;color:#000;letter-spacing:-0.5px;">DAW Doctor</div>
+    <div style="font-size:13px;color:rgba(0,0,0,0.6);margin-top:4px;">Session backup &amp; health</div>
+  </div>
+  <div style="padding:32px;">
+    <p style="color:#cccccc;font-size:15px;margin-bottom:24px;">Your license key is ready. Paste it into your <code style="background:#2a2a2a;padding:2px 6px;border-radius:3px;color:#f09030;">.env</code> file to activate.</p>
+    <div style="background:#2a2a2a;border:1px solid #3a3a3a;border-left:4px solid #e8760a;border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">LICENSE KEY</div>
+      <div style="font-family:monospace;font-size:16px;font-weight:700;color:#eeeeee;letter-spacing:1px;">{license_key}</div>
+    </div>
+    <p style="color:#888;font-size:13px;line-height:1.7;">Add this line to your <code style="background:#2a2a2a;padding:2px 6px;border-radius:3px;color:#f09030;">.env</code> file:<br><br>
+    <code style="background:#2a2a2a;padding:8px 12px;border-radius:4px;color:#cccccc;display:block;margin-top:8px;">LICENSE_KEY={license_key}</code></p>
+    <p style="color:#555;font-size:12px;margin-top:32px;">Plan: {price} &nbsp;·&nbsp; Questions? Reply to this email.</p>
+  </div>
+</div>
+"""
+    msg.attach(MIMEText(text, 'plain'))
+    msg.attach(MIMEText(html, 'html'))
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(gmail_user, gmail_password)
+            server.sendmail(gmail_user, to_email, msg.as_string())
+        print(f"[LICENSE] Email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[LICENSE] Email failed: {e}")
+        return False
+
+
+# ── License Helpers ────────────────────────────────────────────────────────────
+
+def create_license(email, stripe_customer_id, stripe_subscription_id, plan='monthly'):
+    key = str(uuid.uuid4()).upper().replace('-', '')[:32]
+    # Format: DDOC-XXXX-XXXX-XXXX-XXXX
+    key = f"DDOC-{key[0:8]}-{key[8:16]}-{key[16:24]}-{key[24:32]}"
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO licenses (license_key, email, stripe_customer_id, stripe_subscription_id, plan, status, created_at) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (key, email, stripe_customer_id, stripe_subscription_id, plan, 'active', datetime.utcnow().isoformat())
+        )
+        conn.commit()
+    print(f"[LICENSE] Created {key} for {email}")
+    return key
+
+def deactivate_license(stripe_subscription_id):
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE licenses SET status='cancelled' WHERE stripe_subscription_id=?",
+            (stripe_subscription_id,)
+        )
+        conn.commit()
+    print(f"[LICENSE] Deactivated subscription {stripe_subscription_id}")
 
 # ── File Hash ─────────────────────────────────────────────────────────────────
 
@@ -482,6 +586,90 @@ def restore(backup_id):
     if download_from_b2(row['b2_path'], tmp.name):
         return send_file(tmp.name, as_attachment=True, download_name=row['filename'])
     abort(500)
+
+
+# ── Stripe Webhook ────────────────────────────────────────────────────────────
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    import stripe
+    payload    = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature', '')
+    secret     = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+    try:
+        if secret:
+            event = stripe.Webhook.construct_event(payload, sig_header, secret)
+        else:
+            event = json.loads(payload)
+    except Exception as e:
+        print(f"[WEBHOOK] Error: {e}")
+        return Response(status=400)
+
+    etype = event.get('type', '')
+    data  = event['data']['object']
+
+    if etype == 'customer.subscription.created':
+        customer_id   = data.get('customer')
+        sub_id        = data.get('id')
+        plan          = 'annual' if 'annual' in str(data).lower() or 'year' in str(data).lower() else 'monthly'
+
+        # Get customer email from Stripe
+        try:
+            import stripe as s
+            s.api_key      = os.getenv('STRIPE_SECRET_KEY', '')
+            customer       = s.Customer.retrieve(customer_id)
+            email          = customer.get('email', '')
+        except Exception:
+            email = data.get('customer_email', '')
+
+        if email:
+            key = create_license(email, customer_id, sub_id, plan)
+            send_license_email(email, key, plan)
+
+    elif etype in ('customer.subscription.deleted', 'customer.subscription.paused'):
+        deactivate_license(data.get('id'))
+
+    return Response(status=200)
+
+
+# ── License Validation ─────────────────────────────────────────────────────────
+
+@app.route("/validate/<key>")
+def validate_license(key):
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT status, email, plan FROM licenses WHERE license_key=?", (key,)
+        ).fetchone()
+    if not row:
+        return jsonify({'valid': False, 'reason': 'not_found'}), 404
+    if row['status'] != 'active':
+        return jsonify({'valid': False, 'reason': row['status']}), 403
+    return jsonify({'valid': True, 'plan': row['plan'], 'email': row['email']})
+
+
+# ── Activation Page ────────────────────────────────────────────────────────────
+
+@app.route("/activate")
+def activate():
+    return render_template("activate.html")
+
+
+# ── Admin: manual license (for early customers) ────────────────────────────────
+
+@app.route("/admin/issue-license", methods=["POST"])
+def admin_issue_license():
+    admin_key = request.headers.get('X-Admin-Key', '')
+    if admin_key != os.getenv('ADMIN_KEY', ''):
+        abort(403)
+    data  = request.get_json()
+    email = data.get('email', '')
+    plan  = data.get('plan', 'monthly')
+    if not email:
+        abort(400)
+    key = create_license(email, 'manual', 'manual', plan)
+    send_license_email(email, key, plan)
+    return jsonify({'license_key': key, 'email': email})
 
 
 if __name__ == "__main__":

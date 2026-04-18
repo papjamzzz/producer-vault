@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activate DAW Doctor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1a1a1a; --surface: #222222; --panel: #2a2a2a;
+    --border: #383838; --border2: #464646;
+    --text: #cccccc; --dim: #888888; --muted: #555555;
+    --orange: #e8760a; --orange2: #f09030;
+    --green: #5dc122; --white: #eeeeee;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; width: 440px; overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .card-header {
+    background: var(--orange); padding: 24px 28px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .header-logo {
+    width: 40px; height: 40px; border-radius: 8px; overflow: hidden;
+    background: rgba(0,0,0,0.2); flex-shrink: 0;
+  }
+  .header-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .header-text h1 { font-size: 18px; font-weight: 800; color: #000; letter-spacing: -0.3px; }
+  .header-text p  { font-size: 12px; color: rgba(0,0,0,0.6); margin-top: 2px; }
+
+  .card-body { padding: 28px; }
+  .card-body p { font-size: 14px; color: var(--dim); line-height: 1.7; margin-bottom: 24px; }
+  .card-body p strong { color: var(--text); }
+
+  label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
+  input[type="text"] {
+    width: 100%; background: var(--panel); border: 1px solid var(--border2);
+    border-radius: 6px; padding: 11px 14px; font-size: 14px; font-weight: 600;
+    color: var(--white); font-family: 'SF Mono', monospace; letter-spacing: 1px;
+    transition: border-color 0.15s; outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--orange); }
+  input[type="text"]::placeholder { color: var(--muted); font-weight: 400; letter-spacing: 0; }
+
+  .activate-btn {
+    width: 100%; margin-top: 16px; padding: 12px;
+    background: var(--orange); border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 700; color: #000; cursor: pointer;
+    font-family: inherit; transition: background 0.1s;
+  }
+  .activate-btn:hover { background: var(--orange2); }
+
+  .result { margin-top: 16px; padding: 12px 14px; border-radius: 6px;
+    font-size: 13px; font-weight: 600; display: none; }
+  .result.ok    { background: rgba(93,193,34,0.1);  border: 1px solid rgba(93,193,34,0.25);  color: var(--green); }
+  .result.error { background: rgba(196,53,53,0.1);  border: 1px solid rgba(196,53,53,0.25);  color: #e05555; }
+
+  .card-footer {
+    padding: 16px 28px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted); text-align: center;
+  }
+  .card-footer a { color: var(--orange); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <div class="header-logo">
+      <img src="/static/logo.png" alt="DAW Doctor" onerror="this.style.display='none'">
+    </div>
+    <div class="header-text">
+      <h1>DAW Doctor</h1>
+      <p>Session backup &amp; health</p>
+    </div>
+  </div>
+  <div class="card-body">
+    <p>Enter the license key from your welcome email. Add it to your <strong>.env</strong> file as <strong>LICENSE_KEY</strong> to activate.</p>
+    <label for="key-input">License Key</label>
+    <input type="text" id="key-input" placeholder="DDOC-XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" autocomplete="off" spellcheck="false">
+    <button class="activate-btn" onclick="validate()">Activate →</button>
+    <div class="result" id="result"></div>
+  </div>
+  <div class="card-footer">
+    Don't have a key? <a href="/landing#pricing">Get DAW Doctor →</a>
+  </div>
+</div>
+
+<script>
+async function validate() {
+  const key = document.getElementById('key-input').value.trim().toUpperCase();
+  const res = document.getElementById('result');
+  if (!key) return;
+
+  try {
+    const r = await fetch(`/validate/${encodeURIComponent(key)}`);
+    const d = await r.json();
+    res.style.display = 'block';
+    if (d.valid) {
+      res.className = 'result ok';
+      res.textContent = `✓ Valid — ${d.plan} plan. Add LICENSE_KEY=${key} to your .env and restart.`;
+    } else {
+      res.className = 'result error';
+      res.textContent = d.reason === 'not_found' ? '✗ Key not found. Check for typos.' : `✗ License ${d.reason}. Contact support.`;
+    }
+  } catch(e) {
+    res.style.display = 'block';
+    res.className = 'result error';
+    res.textContent = '✗ Could not reach activation server. Check your connection.';
+  }
+}
+
+document.getElementById('key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') validate();
+});
+</script>
+</body>
+</html>
