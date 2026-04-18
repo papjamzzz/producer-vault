@@ -253,14 +253,19 @@
   .btn-orange:hover { background: var(--orange2); }
 
   /* Diagnostics */
-  .diag-list { display: flex; flex-direction: column; gap: 2px; }
-  .diag-row { display: grid; grid-template-columns: 28px 110px 1fr 100px 1fr; align-items: start; gap: 12px; padding: 10px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
-  .diag-icon { font-size: 14px; font-weight: 700; padding-top: 1px; }
-  .diag-code { font-size: 10px; font-family: monospace; color: var(--muted); padding-top: 2px; }
-  .diag-title { font-size: 13px; font-weight: 600; color: var(--white); }
-  .diag-cause { font-size: 11px; color: var(--dim); margin-top: 2px; }
-  .diag-value { font-size: 12px; font-weight: 700; font-family: monospace; }
-  .diag-fix { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .diag-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .diag-head { display: grid; grid-template-columns: 36px 110px 1fr 110px 1fr; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--border); }
+  .diag-head > div { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+  .diag-list { display: flex; flex-direction: column; }
+  .diag-row { display: grid; grid-template-columns: 36px 110px 1fr 110px 1fr; align-items: start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .diag-row:last-child { border-bottom: none; }
+  .diag-row:hover { background: var(--raised); }
+  .diag-icon { font-size: 15px; font-weight: 700; padding-top: 1px; }
+  .diag-code { font-size: 10px; font-family: 'SF Mono', monospace; color: var(--dim); padding-top: 2px; line-height: 1.5; }
+  .diag-title { font-size: 13px; font-weight: 700; color: var(--white); line-height: 1.3; }
+  .diag-cause { font-size: 11px; color: var(--dim); margin-top: 4px; line-height: 1.5; }
+  .diag-value { font-size: 12px; font-weight: 700; font-family: 'SF Mono', monospace; padding-top: 2px; }
+  .diag-fix { font-size: 12px; color: var(--text); line-height: 1.6; padding-top: 1px; }
   .scan-summary { padding: 10px 0 16px; font-size: 13px; font-weight: 600; }
 
   /* Track Monitor */
@@ -483,7 +488,16 @@
           <button class="topbar-btn" onclick="runScan()" id="scan-btn">Run Scan</button>
         </div>
         <div id="scan-summary" style="display:none" class="scan-summary"></div>
-        <div id="scan-results" class="diag-list"></div>
+        <div class="diag-wrap">
+          <div class="diag-head">
+            <div>Status</div>
+            <div>Code</div>
+            <div>Diagnostic</div>
+            <div>Value</div>
+            <div>Resolution</div>
+          </div>
+          <div id="scan-results" class="diag-list"></div>
+        </div>
       </div>
 
       <!-- ── Track Monitor Section ── -->
@@ -647,9 +661,9 @@
       html += `<div class="diag-row">
         <div class="diag-icon" style="color:${colors[sev]||'var(--dim)'}">${icons[sev]||'·'}</div>
         <div class="diag-code">${item.code}</div>
-        <div class="diag-title">${item.title}<div class="diag-cause">${item.cause||''}</div></div>
+        <div><div class="diag-title">${item.title}</div><div class="diag-cause">${item.cause||''}</div></div>
         <div class="diag-value" style="color:${colors[sev]||'var(--dim)'}">${item.value||''}</div>
-        <div class="diag-fix">${item.fix||''}</div>
+        <div class="diag-fix">${item.fix||'—'}</div>
       </div>`;
     });
 
