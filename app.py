@@ -433,7 +433,7 @@ def check_cpu():
         out.append({"code":"AB-CPU-001","sev":"warn","title":"High CPU Load","cause":f"System at {cpu_pct:.0f}%  ·  {maxed}/{len(cores)} cores above 90%","value":f"{cpu_pct:.0f}%","fix":"Freeze instrument tracks · Increase buffer size · Close browser/Slack"})
     else:
         out.append({"code":"AB-CPU-001","sev":"ok","title":"CPU Load Normal","cause":f"System at {cpu_pct:.0f}%","value":f"{cpu_pct:.0f}%","fix":""})
-    SKIP = {"kernel_task","WindowServer","Ableton Live","python3","diagnose.py","coreaudiod","launchd","logd","mds"}
+    SKIP = {"kernel_task","WindowServer","python3","diagnose.py","coreaudiod","launchd","logd","mds"}
     hogs = []
     for p in psutil.process_iter(["name","cpu_percent"]):
         try:
@@ -474,7 +474,7 @@ def check_memory():
 def check_ableton():
     out = []
     all_procs = list(psutil.process_iter(["name","pid","cpu_percent","memory_info"]))
-    abl = next((p for p in all_procs if "Ableton Live" in (p.info.get("name") or "")), None)
+    abl = next((p for p in all_procs if (p.info.get("name") or "") in ("Live", "Ableton Live") or "Ableton Live" in (p.info.get("name") or "")), None)
     if abl is None:
         out.append({"code":"AB-ABL-001","sev":"info","title":"Ableton Live Not Running","cause":"Ableton Live process not found","value":"NOT RUNNING","fix":"Launch Ableton Live for full process diagnostics"})
     else:
