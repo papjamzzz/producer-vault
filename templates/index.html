@@ -277,10 +277,26 @@
   .step-num { background: var(--orange); color: #000; font-weight: 700; font-size: 11px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
   /* Settings */
-  .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
   .settings-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .settings-card.full { grid-column: 1 / -1; }
   .settings-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
-  .settings-value { font-size: 14px; font-weight: 600; color: var(--white); font-family: monospace; word-break: break-all; }
+  .settings-value { font-size: 13px; font-weight: 600; color: var(--white); font-family: monospace; word-break: break-all; }
+  .settings-stat { font-size: 24px; font-weight: 700; color: var(--white); line-height: 1; margin-bottom: 4px; }
+  .settings-sub { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .settings-input-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .settings-input { flex: 1; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; padding: 9px 12px; font-size: 13px; font-family: monospace; color: var(--white); outline: none; transition: border-color 0.15s; }
+  .settings-input:focus { border-color: var(--orange); }
+  .settings-save-btn { background: var(--orange); border: none; color: #000; font-size: 12px; font-weight: 700; padding: 9px 16px; border-radius: 6px; cursor: pointer; font-family: inherit; white-space: nowrap; transition: background 0.1s; }
+  .settings-save-btn:hover { background: var(--orange2); }
+  .settings-saved { font-size: 11px; color: var(--green); margin-top: 6px; display: none; }
+  .settings-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.8px; color: var(--muted); margin-bottom: 10px; margin-top: 4px; }
+  .settings-action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .settings-action-btn { background: var(--panel); border: 1px solid var(--border2); color: var(--text); font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: inherit; transition: all 0.1s; }
+  .settings-action-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .settings-action-btn.danger { border-color: rgba(196,53,53,0.4); color: var(--red); }
+  .settings-action-btn.danger:hover { background: rgba(196,53,53,0.1); border-color: var(--red); }
+  .settings-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 
   /* Bottom bar */
   .bottom-bar {
@@ -539,25 +555,93 @@
 
       <!-- ── Settings Section ── -->
       <div id="section-settings" style="display:none">
-        <div class="section-header"><div class="section-title">Settings</div></div>
+        <div class="section-header">
+          <div class="section-title">Settings</div>
+          <span id="settings-save-status" style="font-size:12px;color:var(--green);display:none">✓ Saved</span>
+        </div>
+
+        <!-- Stats row -->
         <div class="settings-grid">
           <div class="settings-card">
-            <div class="settings-label">Watch Folder</div>
-            <div class="settings-value">{{ watch_folder }}</div>
+            <div class="settings-label">Watcher Status</div>
+            <div class="settings-stat" id="set-watcher-stat" style="color:var(--green)">● Active</div>
+            <div class="settings-sub" id="set-watcher-folder">{{ watch_folder }}</div>
           </div>
           <div class="settings-card">
             <div class="settings-label">B2 Bucket</div>
-            <div class="settings-value" id="b2-bucket">—</div>
+            <div class="settings-stat" id="set-b2-bucket">—</div>
+            <div class="settings-sub">Backblaze B2 storage</div>
           </div>
           <div class="settings-card">
-            <div class="settings-label">Watcher</div>
-            <div class="settings-value" style="color:var(--green)">● Active</div>
+            <div class="settings-label">Total Backups</div>
+            <div class="settings-stat" style="color:var(--orange)">{{ total }}</div>
+            <div class="settings-sub">{{ total_size }} used</div>
           </div>
           <div class="settings-card">
             <div class="settings-label">License</div>
-            <div class="settings-value"><a href="/activate" style="color:var(--orange)">Manage →</a></div>
+            <div class="settings-stat" id="set-license-status" style="font-size:14px;color:var(--green)">—</div>
+            <div class="settings-sub"><a href="/activate" style="color:var(--orange)">Manage license →</a></div>
           </div>
         </div>
+
+        <!-- Watch Folder -->
+        <div class="settings-section-title">Backup Configuration</div>
+        <div class="settings-grid">
+          <div class="settings-card full">
+            <div class="settings-label">Watch Folder</div>
+            <div class="settings-sub" style="margin-bottom:8px">DAW Doctor monitors this folder and backs up every save automatically.</div>
+            <div class="settings-input-row">
+              <input type="text" class="settings-input" id="input-watch-folder" value="{{ watch_folder }}" placeholder="/Users/you/Music/Ableton">
+              <button class="settings-save-btn" onclick="saveSetting('watch_folder', document.getElementById('input-watch-folder').value)">Save</button>
+            </div>
+            <div class="settings-saved" id="saved-watch_folder">✓ Restart DAW Doctor to apply</div>
+          </div>
+          <div class="settings-card">
+            <div class="settings-label">B2 Bucket Name</div>
+            <div class="settings-sub" style="margin-bottom:8px">Your Backblaze B2 bucket where backups are stored.</div>
+            <div class="settings-input-row">
+              <input type="text" class="settings-input" id="input-b2-bucket" value="" placeholder="ProducersVault">
+              <button class="settings-save-btn" onclick="saveSetting('b2_bucket', document.getElementById('input-b2-bucket').value)">Save</button>
+            </div>
+            <div class="settings-saved" id="saved-b2_bucket">✓ Restart DAW Doctor to apply</div>
+          </div>
+          <div class="settings-card">
+            <div class="settings-label">File Extensions Watched</div>
+            <div class="settings-sub" style="margin-bottom:8px">These file types trigger a backup on every save.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="ext-tags">
+              <span class="diff-tag diff-add">.als</span>
+              <span class="diff-tag diff-add">.alc</span>
+              <span class="diff-tag diff-add">.adg</span>
+              <span class="diff-tag diff-add">.wav</span>
+              <span class="diff-tag diff-add">.aif</span>
+              <span class="diff-tag diff-add">.aiff</span>
+              <span class="diff-tag diff-add">.flac</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="settings-section-title">Actions</div>
+        <div class="settings-card" style="margin-bottom:12px">
+          <div class="settings-label">Watcher Control</div>
+          <div class="settings-sub" style="margin-bottom:10px">The watcher runs as a background thread while DAW Doctor is active.</div>
+          <div class="settings-action-row">
+            <button class="settings-action-btn" onclick="pingAction('restart_watcher')">↻ Restart Watcher</button>
+            <button class="settings-action-btn" onclick="pingAction('clear_errors')">✕ Clear Error Rows</button>
+            <button class="settings-action-btn" onclick="window.open('/landing','_blank')">↗ View Landing Page</button>
+            <button class="settings-action-btn" onclick="showOnboarding()">? Onboarding Guide</button>
+          </div>
+          <div id="action-feedback" style="font-size:11px;color:var(--green);margin-top:8px;display:none"></div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-label">Danger Zone</div>
+          <div class="settings-sub" style="margin-bottom:10px">Destructive actions — cannot be undone.</div>
+          <div class="settings-action-row">
+            <button class="settings-action-btn danger" onclick="confirmAction('clear_db', 'Delete ALL backup records from the database? Files in B2 will not be deleted.')">✕ Clear Backup Database</button>
+          </div>
+        </div>
+
       </div>
 
     </div><!-- /content-area -->
@@ -741,8 +825,40 @@
   async function loadSettings() {
     const r = await fetch('/api/settings');
     const d = await r.json();
-    const el = document.getElementById('b2-bucket');
-    if (el) el.textContent = d.b2_bucket || '—';
+    if (document.getElementById('set-b2-bucket')) document.getElementById('set-b2-bucket').textContent = d.b2_bucket || '—';
+    if (document.getElementById('input-b2-bucket')) document.getElementById('input-b2-bucket').value = d.b2_bucket || '';
+    if (document.getElementById('set-watcher-stat')) {
+      const active = d.watcher_active;
+      document.getElementById('set-watcher-stat').textContent = active ? '● Active' : '○ Inactive';
+      document.getElementById('set-watcher-stat').style.color = active ? 'var(--green)' : 'var(--red)';
+    }
+    if (document.getElementById('set-license-status')) {
+      document.getElementById('set-license-status').textContent = d.license_key ? '✓ Licensed' : 'Not activated';
+      document.getElementById('set-license-status').style.color = d.license_key ? 'var(--green)' : 'var(--dim)';
+    }
+  }
+
+  async function saveSetting(key, value) {
+    if (!value.trim()) return;
+    const r = await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({[key]: value})});
+    const d = await r.json();
+    if (d.ok) {
+      const el = document.getElementById('saved-' + key);
+      if (el) { el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3000); }
+      const status = document.getElementById('settings-save-status');
+      if (status) { status.style.display = 'inline'; setTimeout(() => status.style.display = 'none', 2000); }
+    }
+  }
+
+  async function pingAction(action) {
+    const r = await fetch('/api/action', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action})});
+    const d = await r.json();
+    const fb = document.getElementById('action-feedback');
+    if (fb) { fb.textContent = d.message || '✓ Done'; fb.style.display = 'block'; setTimeout(() => fb.style.display = 'none', 3000); }
+  }
+
+  function confirmAction(action, msg) {
+    if (confirm(msg)) pingAction(action);
   }
 
   // Onboarding

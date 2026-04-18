@@ -933,13 +933,60 @@ def api_logs():
     return jsonify([dict(r) for r in rows])
 
 
-@app.route("/api/settings")
+@app.route("/api/settings", methods=["GET", "POST"])
 def api_settings():
+    if request.method == "POST":
+        data = request.get_json() or {}
+        # Write updated values to .env file
+        env_path = os.path.join(os.path.dirname(__file__), '.env')
+        try:
+            with open(env_path, 'r') as f:
+                lines = f.readlines()
+            mapping = {'watch_folder': 'WATCH_FOLDER', 'b2_bucket': 'B2_BUCKET_NAME'}
+            for key, val in data.items():
+                env_key = mapping.get(key)
+                if not env_key:
+                    continue
+                updated = False
+                for i, line in enumerate(lines):
+                    if line.startswith(env_key + '='):
+                        lines[i] = f"{env_key}={val}\n"
+                        updated = True
+                        break
+                if not updated:
+                    lines.append(f"{env_key}={val}\n")
+            with open(env_path, 'w') as f:
+                f.writelines(lines)
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)})
     return jsonify({
         "watch_folder": WATCH_FOLDER,
         "b2_bucket": os.getenv("B2_BUCKET_NAME", "ProducersVault"),
-        "watcher_active": os.path.exists(WATCH_FOLDER)
+        "watcher_active": os.path.exists(WATCH_FOLDER),
+        "license_key": os.getenv("LICENSE_KEY", "")
     })
+
+
+@app.route("/api/action", methods=["POST"])
+def api_action():
+    data = request.get_json() or {}
+    action = data.get("action", "")
+    if action == "restart_watcher":
+        t = threading.Thread(target=start_watcher, daemon=True)
+        t.start()
+        return jsonify({"message": "✓ Watcher restarted"})
+    elif action == "clear_errors":
+        with get_db() as conn:
+            conn.execute("DELETE FROM backups WHERE status='error'")
+            conn.commit()
+        return jsonify({"message": "✓ Error rows cleared"})
+    elif action == "clear_db":
+        with get_db() as conn:
+            conn.execute("DELETE FROM backups")
+            conn.commit()
+        return jsonify({"message": "✓ Database cleared"})
+    return jsonify({"message": "Unknown action"})
 
 
 if __name__ == "__main__":
