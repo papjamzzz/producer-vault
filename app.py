@@ -4,7 +4,7 @@ Never lose a session again.
 Port 5565
 """
 
-import os, sqlite3, threading, time, gzip, json
+import os, sqlite3, threading, time, gzip, json, hashlib
 from datetime import datetime
 from xml.etree import ElementTree as ET
 from flask import Flask, render_template, jsonify, send_file, abort
@@ -59,6 +59,7 @@ def init_db():
             ('key',          'TEXT'),
             ('plugins',      'TEXT'),
             ('notes',        'TEXT'),
+            ('file_hash',    'TEXT'),
         ]:
             try:
                 conn.execute(f"ALTER TABLE backups ADD COLUMN {col} {typedef}")
@@ -67,6 +68,24 @@ def init_db():
         conn.commit()
 
 init_db()
+
+# ── File Hash ─────────────────────────────────────────────────────────────────
+
+def sha256(filepath):
+    h = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        for chunk in iter(lambda: f.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+def already_backed_up(file_hash):
+    """Return True if this exact file content is already in B2."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id FROM backups WHERE file_hash=? AND status='ok' LIMIT 1",
+            (file_hash,)
+        ).fetchone()
+    return row is not None
 
 # ── .als Metadata Parser ───────────────────────────────────────────────────────
 
@@ -212,13 +231,19 @@ def _do_backup(path):
             project_name = part.removesuffix(' Project').removesuffix(' project').strip()
             break
 
-    b2_path = f"{project_name}/{timestamp}/{filename}"
+    b2_path   = f"{project_name}/{timestamp}/{filename}"
+    file_hash = sha256(path)
+
+    # Audio files: dedup by hash — if we already have this exact content, skip upload
+    AUDIO_EXTS = {'.wav', '.aif', '.aiff', '.flac'}
+    if ext in AUDIO_EXTS and already_backed_up(file_hash):
+        print(f"[VAULT] Skipped (unchanged): {filename}")
+        return
 
     # Parse .als metadata before uploading
-    meta = {'bpm': None, 'track_count': None, 'plugins': []}
+    meta = {'bpm': None, 'track_count': None, 'key': None, 'plugins': []}
     if ext == '.als':
         meta = parse_als(path)
-        plugin_str = ', '.join(meta['plugins'][:10])  # cap at 10
         print(f"[VAULT] {filename} — {meta['bpm']} BPM · {meta['track_count']} tracks · {len(meta['plugins'])} plugins")
 
     print(f"[VAULT] Backing up: {b2_path}")
@@ -228,8 +253,8 @@ def _do_backup(path):
     with get_db() as conn:
         conn.execute(
             "INSERT INTO backups "
-            "(filename, filepath, b2_path, project_name, size_bytes, backed_up_at, status, bpm, track_count, key, plugins) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            "(filename, filepath, b2_path, project_name, size_bytes, backed_up_at, status, bpm, track_count, key, plugins, file_hash) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 filename, path, b2_path, project_name, size,
                 datetime.utcnow().isoformat(), status,
@@ -237,6 +262,7 @@ def _do_backup(path):
                 meta.get('track_count'),
                 meta.get('key'),
                 json.dumps(meta.get('plugins', [])),
+                file_hash,
             )
         )
         conn.commit()
