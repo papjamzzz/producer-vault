@@ -24,10 +24,10 @@
   }
   .plugin-logo { display: flex; align-items: center; gap: 10px; }
   .logo-mark {
-    width: 28px; height: 28px; background: var(--orange); border-radius: 4px;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 14px; color: #000; letter-spacing: -1px;
+    width: 28px; height: 28px; border-radius: 4px; overflow: hidden;
+    background: var(--orange);
   }
+  .logo-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .logo-text { font-size: 15px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; }
   .logo-text span { color: var(--orange); }
   .back-btn {
@@ -113,7 +113,7 @@
 
 <div class="plugin-header">
   <div class="plugin-logo">
-    <div class="logo-mark">PV</div>
+    <div class="logo-mark"><img src="/static/logo.png" alt="DD" onerror="this.parentElement.textContent='DD'"></div>
     <div class="logo-text">DAW <span>Doctor</span></div>
   </div>
   <a href="/" class="back-btn">← All Activity</a>
