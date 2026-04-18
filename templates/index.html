@@ -6,72 +6,112 @@
 <title>ProducerVault</title>
 <style>
   :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --border: #1e1e2e;
-    --accent: #7c3aed;
+    --bg:      #08090d;
+    --surface: #0d0f1a;
+    --card:    #11131e;
+    --border:  #1e2235;
+    --text:    #e2e8f0;
+    --dim:     #5a6080;
+    --accent:  #7c3aed;
     --accent2: #a855f7;
-    --green: #22c55e;
-    --red: #ef4444;
-    --text: #e2e8f0;
-    --muted: #64748b;
+    --green:   #22c55e;
+    --red:     #ef4444;
+    --yellow:  #f59e0b;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; min-height: 100vh; }
 
+  /* ── Header ── */
   header {
-    padding: 28px 40px;
+    padding: 24px 40px;
     border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
   }
-  .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
   .logo span { color: var(--accent2); }
   .status-pill {
     display: flex; align-items: center; gap: 8px;
     background: var(--surface); border: 1px solid var(--border);
-    padding: 6px 14px; border-radius: 999px; font-size: 13px; color: var(--muted);
+    padding: 6px 14px; border-radius: 999px; font-size: 12px; color: var(--dim);
   }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+  /* ── Stats ── */
   .stats {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 16px; padding: 32px 40px;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; padding: 28px 40px 0;
   }
   .stat {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 24px;
+    border-radius: 10px; padding: 20px 22px;
   }
-  .stat-num { font-size: 42px; font-weight: 700; color: var(--accent2); }
-  .stat-label { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .stat-num { font-size: 32px; font-weight: 700; color: var(--accent2); line-height: 1; }
+  .stat-num.green { color: var(--green); }
+  .stat-num.red   { color: var(--red); }
+  .stat-label { color: var(--dim); font-size: 11px; margin-top: 6px; text-transform: uppercase; letter-spacing: 1.5px; }
 
-  .section { padding: 0 40px 40px; }
-  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 16px; }
-
+  /* ── Sections ── */
+  .section { padding: 28px 40px; }
+  .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--dim); margin-bottom: 12px;
+  }
   .watch-path {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px 18px;
-    font-size: 13px; color: var(--accent2); margin-bottom: 32px;
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 12px; color: var(--accent2);
   }
-  .watch-path span { color: var(--muted); }
+  .watch-path span { color: var(--dim); margin-right: 6px; }
 
-  .backup-list { display: flex; flex-direction: column; gap: 8px; }
+  /* ── Projects ── */
+  .projects { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+  .project-chip {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; font-size: 12px;
+  }
+  .project-chip-name { color: var(--accent2); font-weight: 600; }
+  .project-chip-meta { color: var(--dim); font-size: 11px; margin-top: 3px; }
+
+  /* ── Backup List ── */
+  .backup-list { display: flex; flex-direction: column; gap: 6px; }
   .backup-row {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px 18px;
+    border-radius: 8px; padding: 12px 16px;
     display: flex; align-items: center; justify-content: space-between;
-    transition: border-color 0.2s;
+    transition: border-color 0.15s;
   }
   .backup-row:hover { border-color: var(--accent); }
-  .backup-name { font-size: 14px; font-weight: 600; }
-  .backup-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .backup-left { display: flex; flex-direction: column; gap: 3px; }
+  .backup-name { font-size: 13px; font-weight: 600; }
+  .backup-project { font-size: 11px; color: var(--accent2); }
+  .backup-meta { font-size: 11px; color: var(--dim); }
+  .backup-right { display: flex; align-items: center; gap: 10px; }
   .badge {
-    padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 600; white-space: nowrap;
   }
-  .badge-ok { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
-  .badge-error { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .badge-ok    { background: rgba(34,197,94,0.1);  color: var(--green);  border: 1px solid rgba(34,197,94,0.2); }
+  .badge-error { background: rgba(239,68,68,0.1);  color: var(--red);    border: 1px solid rgba(239,68,68,0.2); }
+  .restore-btn {
+    background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
+    color: var(--accent2); font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 6px; cursor: pointer;
+    text-decoration: none; transition: background 0.15s;
+    font-family: inherit;
+  }
+  .restore-btn:hover { background: rgba(124,58,237,0.3); }
 
-  .empty { color: var(--muted); font-size: 14px; padding: 32px 0; text-align: center; }
+  .empty { color: var(--dim); font-size: 13px; padding: 40px 0; text-align: center; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); font-size: 12px; padding: 12px 18px;
+    border-radius: 8px; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -86,33 +126,63 @@
 
 <div class="stats">
   <div class="stat">
-    <div class="stat-num">{{ total }}</div>
-    <div class="stat-label">Successful Backups</div>
+    <div class="stat-num green">{{ total }}</div>
+    <div class="stat-label">Backed Up</div>
   </div>
   <div class="stat">
-    <div class="stat-num">{{ errors }}</div>
+    <div class="stat-num {% if errors > 0 %}red{% endif %}">{{ errors }}</div>
     <div class="stat-label">Errors</div>
   </div>
   <div class="stat">
-    <div class="stat-num">{{ backups|length }}</div>
-    <div class="stat-label">Recent Events</div>
+    <div class="stat-num">{{ projects|length }}</div>
+    <div class="stat-label">Projects</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num" style="font-size:20px; padding-top:6px;">{{ total_size }}</div>
+    <div class="stat-label">Total Stored</div>
   </div>
 </div>
 
 <div class="section">
-  <div class="section-title">Watching</div>
-  <div class="watch-path"><span>folder → </span>{{ watch_folder }}</div>
+  <div class="section-title">Watch Folder</div>
+  <div class="watch-path"><span>→</span>{{ watch_folder }}</div>
+</div>
 
+{% if projects %}
+<div class="section" style="padding-top:0">
+  <div class="section-title">Projects</div>
+  <div class="projects">
+    {% for p in projects %}
+    <div class="project-chip">
+      <div class="project-chip-name">{{ p.project_name }}</div>
+      <div class="project-chip-meta">{{ p.cnt }} backup{{ 's' if p.cnt != 1 }} · {{ p.last_backup[:10] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="section" style="padding-top:0">
   <div class="section-title">Recent Backups</div>
   <div class="backup-list">
     {% if backups %}
       {% for b in backups %}
       <div class="backup-row">
-        <div>
+        <div class="backup-left">
           <div class="backup-name">{{ b.filename }}</div>
-          <div class="backup-meta">{{ b.backed_up_at[:19].replace('T',' ') }} UTC &nbsp;·&nbsp; {{ (b.size_bytes / 1024)|round(1) }} KB</div>
+          <div class="backup-project">{{ b.project_name or '—' }}</div>
+          <div class="backup-meta">
+            {{ b.backed_up_at[:19].replace('T',' ') }} UTC
+            &nbsp;·&nbsp;
+            {% if b.size_bytes %}{{ (b.size_bytes / 1024)|round(1) }} KB{% else %}—{% endif %}
+          </div>
         </div>
-        <span class="badge badge-{{ b.status }}">{{ '✓ backed up' if b.status == 'ok' else '✗ error' }}</span>
+        <div class="backup-right">
+          <span class="badge badge-{{ b.status }}">{{ '✓ backed up' if b.status == 'ok' else '✗ error' }}</span>
+          {% if b.status == 'ok' %}
+          <a class="restore-btn" href="/restore/{{ b.id }}" title="Download this version">↓ restore</a>
+          {% endif %}
+        </div>
       </div>
       {% endfor %}
     {% else %}
@@ -121,12 +191,27 @@
   </div>
 </div>
 
+<div id="toast"></div>
+
 <script>
-  // Auto-refresh every 10s
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // Auto-refresh every 10s — only reload if new backups exist
+  let lastCount = {{ backups|length }};
   setInterval(() => {
     fetch('/api/backups')
       .then(r => r.json())
-      .then(() => location.reload());
+      .then(data => {
+        if (data.length !== lastCount) {
+          lastCount = data.length;
+          location.reload();
+        }
+      });
   }, 10000);
 </script>
 
